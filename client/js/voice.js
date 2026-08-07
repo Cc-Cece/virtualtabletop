@@ -1,6 +1,7 @@
 import { onLoad } from './domhelpers.js';
 import { toServer } from './connection.js';
 
+;(()=>{
 let voiceState = null;
 let localStream = null;
 let muted = false;
@@ -726,3 +727,4 @@ onLoad(function() {
       liveKitRoom.disconnect();
   });
 });
+})();
