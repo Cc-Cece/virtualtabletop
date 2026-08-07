@@ -84,7 +84,14 @@ function participants(state) {
   return [ ...state.participants.values() ].sort((a, b)=>a.joinOrder - b.joinOrder);
 }
 
-function hostSessionID(state) {
+function hostSessionID(room, state) {
+  const configuredHostSeat = gameVoiceConfig(room).hostSeat;
+  const hostPlayerName = typeof configuredHostSeat == 'string' ? room?.state?.[configuredHostSeat]?.player : null;
+  if(hostPlayerName) {
+    const seatedHost = participants(state).find(entry=>entry.player.name == hostPlayerName);
+    if(seatedHost)
+      return seatedHost.player.sessionID;
+  }
   return participants(state)[0]?.player.sessionID ?? null;
 }
 
@@ -105,7 +112,7 @@ function publicStateFor(player) {
   const room = player.room;
   const state = stateFor(room);
   const settings = settingsFor(room);
-  const host = hostSessionID(state);
+  const host = hostSessionID(room, state);
   return {
     enabled: settings.enabled,
     joined: state.participants.has(player.sessionID),
@@ -200,7 +207,7 @@ function setMode(player, args) {
   const room = player.room;
   const state = stateFor(room);
   const settings = settingsFor(room);
-  if(!state.participants.has(player.sessionID) || hostSessionID(state) !== player.sessionID)
+  if(!state.participants.has(player.sessionID) || hostSessionID(room, state) !== player.sessionID)
     return;
   const mode = args?.mode;
   if(!VALID_MODES.has(mode))
