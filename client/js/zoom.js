@@ -1,19 +1,29 @@
 import { viewportConfig } from './calculateLayout.js';
 
-let zoomScale = 1;
+export const MIN_ZOOM = 1;
+export const MAX_ZOOM = 20;
+const ZOOM_PRECISION = 10;
+const KEYBOARD_ZOOM_STEP = 0.1;
+
+let zoomScale = MIN_ZOOM;
 let zoomLocked = localStorage.getItem('zoomLocked') === 'true';
 
+export function clampZoomLevel(zoomLevel) {
+  const rounded = Math.round(zoomLevel * ZOOM_PRECISION) / ZOOM_PRECISION;
+  return Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, rounded));
+}
+
 function setZoomLevel(zoomLevel) {
-  zoomScale = zoomLevel;
+  zoomScale = clampZoomLevel(zoomLevel);
   
   $('#zoom2xButton .tooltip').textContent = `${zoomScale.toFixed(1)}x Zoom`;
 
-  // Update slider to match (convert zoom 1-10 to slider 10-100)
+  // Slider stores tenths so 1x-20x maps to 10-200.
   if($('#zoomSlider'))
-    $('#zoomSlider').value = Math.round(zoomScale * 10);
+    $('#zoomSlider').value = Math.round(zoomScale * ZOOM_PRECISION);
 
   // Zoomed mode - enable panning
-  $('body').classList.toggle('zoom2x', zoomScale > 1);
+  $('body').classList.toggle('zoom2x', zoomScale > MIN_ZOOM);
   document.documentElement.style.setProperty('--zoom', zoomScale);
   roomRectangle = $('#room').getBoundingClientRect();
   refreshIgnoreZoomWidgets();
@@ -24,7 +34,7 @@ export function getZoomLevel() {
 }
 
 function resetZoomAndPan() {
-  setZoomLevel(1);
+  setZoomLevel(MIN_ZOOM);
   setPan(0, 0);
   $('body').classList.remove('panning');
 }
@@ -59,6 +69,7 @@ function setZoomAroundPoint(newZoomLevel, viewportPixelX, viewportPixelY) {
   const relY = (viewportPixelY - roomRect.top) / roomRect.height;
 
   // Set new zoom level
+  newZoomLevel = clampZoomLevel(newZoomLevel);
   if(newZoomLevel === zoomScale) return;
   setZoomLevel(newZoomLevel);
 
@@ -88,7 +99,6 @@ function refreshIgnoreZoomWidgets() {
 
 onLoad(function() {
   // Zoom functionality with scroll wheel and drag-to-pan
-  const zoomLevels = [1, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2];
   let isDraggingPan = false;
   let dragStartX = 0;
   let dragStartY = 0;
@@ -100,6 +110,14 @@ onLoad(function() {
   let lastWheelZoomTime = 0;
   const minWheelZoomInterval = 40; // milliseconds between zoom events
   let zoomControlsHidden = true;
+
+  const zoomSlider = $('#zoomSlider');
+  if(zoomSlider) {
+    zoomSlider.min = MIN_ZOOM * ZOOM_PRECISION;
+    zoomSlider.max = MAX_ZOOM * ZOOM_PRECISION;
+    zoomSlider.step = 1;
+    zoomSlider.value = zoomScale * ZOOM_PRECISION;
+  }
 
   function isEditableElement(target) {
     const editableTags = ['BUTTON', 'INPUT', 'SELECT', 'TEXTAREA'];
@@ -149,7 +167,7 @@ onLoad(function() {
 
   // Slider controls zoom level
   on('#zoomSlider', 'input', function(e) {
-    setZoomAroundCenter(parseInt(e.target.value) / 10);
+    setZoomAroundCenter(parseInt(e.target.value) / ZOOM_PRECISION);
   });
 
   // Lock button prevents zoom changes
@@ -175,17 +193,15 @@ onLoad(function() {
     lastWheelZoomTime = now;
 
     const delta = e.deltaY > 0 ? 0.85 : 1.15;
-    const newZoomLevel = Math.max(1, Math.min(10, Math.round(zoomScale * delta * 10) / 10));
-    setZoomAroundPoint(newZoomLevel, e.clientX, e.clientY);
+    setZoomAroundPoint(clampZoomLevel(zoomScale * delta), e.clientX, e.clientY);
   });
 
-  // Page up/down zoom
+  // Page up/down zoom in consistent 0.1x steps across the full supported range.
   on('body', 'keydown', function(e){
     if(!overlayActive && !edit && !zoomLocked && (e.key === 'PageUp' || e.key === 'PageDown')) {
       e.preventDefault();
-      const currentIndex = zoomLevels.indexOf(zoomScale);
-      const newIndex = e.key === 'PageUp' ? Math.min(zoomLevels.length - 1, currentIndex + 1) : Math.max(0, currentIndex - 1);
-      setZoomAroundCenter(zoomLevels[newIndex]);
+      const direction = e.key === 'PageUp' ? 1 : -1;
+      setZoomAroundCenter(clampZoomLevel(zoomScale + direction * KEYBOARD_ZOOM_STEP));
     }
   });
 
@@ -204,7 +220,7 @@ onLoad(function() {
       updateSpacePanClass();
 
       // If zoomed in, start panning regardless of widget under cursor
-      if(zoomScale > 1 && !isDraggingPan) {
+      if(zoomScale > MIN_ZOOM && !isDraggingPan) {
         isDraggingPan = true;
         dragStartX = e.clientX;
         dragStartY = e.clientY;
@@ -216,7 +232,7 @@ onLoad(function() {
     }
 
     // Normal pan behavior when not in edit/space-pan
-    if(zoomScale > 1 && !isDraggingPan && !elementIsMovableWidget(e.target) && !edit) {
+    if(zoomScale > MIN_ZOOM && !isDraggingPan && !elementIsMovableWidget(e.target) && !edit) {
       isDraggingPan = true;
       dragStartX = e.clientX;
       dragStartY = e.clientY;
@@ -235,7 +251,7 @@ onLoad(function() {
     e.stopPropagation();
     if(e.stopImmediatePropagation) e.stopImmediatePropagation();
 
-    setZoomAroundPoint(zoomScale === 1 ? 2 : 1, e.clientX, e.clientY);
+    setZoomAroundPoint(zoomScale === MIN_ZOOM ? 2 : MIN_ZOOM, e.clientX, e.clientY);
   });
 
   // Swallow middle-button mouseup to avoid widget interactions
@@ -276,7 +292,7 @@ onLoad(function() {
     // pinch
     isPinching: false,
     startDist: 0,
-    startZoom: 1,
+    startZoom: MIN_ZOOM,
     anchorRelX: 0.5,
     anchorRelY: 0.5
   };
@@ -289,7 +305,7 @@ onLoad(function() {
   on('#roomArea', 'touchstart', function(e){
     // Start panning only when zoomed and not on draggable widget
     // Block if finger is on a movable widget
-    if(!edit && !overlayActive && zoomScale > 1 && e.touches.length == 1 && !touchOnMovable(e.touches[0])) {
+    if(!edit && !overlayActive && zoomScale > MIN_ZOOM && e.touches.length == 1 && !touchOnMovable(e.touches[0])) {
       touchState.isPanning = true;
       touchState.startX = e.touches[0].clientX;
       touchState.startY = e.touches[0].clientY;
@@ -321,7 +337,7 @@ onLoad(function() {
       const dist = Math.hypot((e.touches[0].clientX - e.touches[1].clientX), (e.touches[0].clientY - e.touches[1].clientY));
       if(touchState.startDist <= 0)
         return;
-      setZoomAroundPoint(Math.max(1, Math.min(10, Math.round((touchState.startZoom * (dist / touchState.startDist)) * 10) / 10)), (e.touches[0].clientX + e.touches[1].clientX)/2, (e.touches[0].clientY + e.touches[1].clientY)/2);
+      setZoomAroundPoint(clampZoomLevel(touchState.startZoom * (dist / touchState.startDist)), (e.touches[0].clientX + e.touches[1].clientX)/2, (e.touches[0].clientY + e.touches[1].clientY)/2);
     }
   });
 
