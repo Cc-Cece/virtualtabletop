@@ -75,6 +75,42 @@ The voice module is loaded separately from the main bundled client and adds a Vo
 
 Opening or failing voice does not affect cards, room state, or the main VTT WebSocket connection.
 
+## Game-facing speaking activity
+
+Speaking is also exposed as a generic, client-only player activity so game packages can choose their own visual response without learning about WebRTC, LiveKit, or voice-panel DOM details.
+
+A game can add a dedicated visual widget with a declaration such as:
+
+```json
+{
+  "id": "example-speaking-indicator",
+  "type": "basic",
+  "display": false,
+  "clientActivityIndicator": {
+    "source": "voice.speaking",
+    "playerWidget": "seat-1"
+  }
+}
+```
+
+`playerWidget` points to a normal VTT widget whose `player` property identifies the player represented by the indicator. The browser locally shows the dedicated indicator while that player is active for the declared source and hides it otherwise. Keeping the indicator's saved `display` value `false` makes the package safe on older VTT clients that do not understand `clientActivityIndicator`.
+
+The platform event is `vtt-client-activity`. Voice publishes player-scoped activity equivalent to:
+
+```js
+{
+  source: 'voice.speaking',
+  subject: 'player',
+  player: 'Alice',
+  sessionID: 123,
+  active: true
+}
+```
+
+Multiple sessions for the same player are aggregated, so one session becoming quiet does not clear another active session. Speaking starts immediately and the game-facing activity uses a short 350 ms release delay to avoid flicker at syllable boundaries; muting the local microphone clears the activity immediately.
+
+This activity is intentionally transient and local. It is not written into room state, save files, undo history, traces, or normal game synchronization. Games decide whether to draw a glow, animate an avatar, show an icon, or ignore it entirely. `clientActivityIndicator` is intended for dedicated visual widgets rather than for overriding the normal visibility lifecycle of gameplay widgets.
+
 ## Notes on privacy and bandwidth
 
 P2P participants learn the network addresses WebRTC exposes to their peer connection, as is normal for direct WebRTC. Choose Stable (SFU) if hiding peer network topology is more important than minimizing server bandwidth.
