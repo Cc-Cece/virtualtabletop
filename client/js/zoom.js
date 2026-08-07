@@ -4,9 +4,15 @@ export const MIN_ZOOM = 1;
 export const MAX_ZOOM = 20;
 const ZOOM_PRECISION = 10;
 const KEYBOARD_ZOOM_STEP = 0.1;
+const CAMERA_REGION_CONTROL_ID = 'cameraRegionControl';
+const CAMERA_REGION_FOCUS_ID = 'cameraRegionFocusButton';
+const CAMERA_REGION_COLLAPSE_ID = 'cameraRegionCollapseButton';
+const CAMERA_REGION_COLLAPSED_KEY = 'cameraRegionControlsCollapsed';
 
 let zoomScale = MIN_ZOOM;
 let zoomLocked = localStorage.getItem('zoomLocked') === 'true';
+let cameraRegionAutoFocusDone = false;
+let cameraRegionAutoFocusRegionID = null;
 
 export function clampZoomLevel(zoomLevel) {
   const rounded = Math.round(zoomLevel * ZOOM_PRECISION) / ZOOM_PRECISION;
@@ -95,6 +101,133 @@ function setZoomAroundCenter(newZoomLevel) {
 function refreshIgnoreZoomWidgets() {
   for(const widget of widgetFilter(w => w.get('ignoreZoom')))
     widget.applyCSS({ ignoreZoom: true });
+}
+
+function primaryCameraRegionWidget() {
+  const regions = widgetFilter(w => w.get('cameraRegion'));
+  return regions.find(w => w.get('cameraRegionPrimary')) || regions[0] || null;
+}
+
+function cameraRegionBounds(widget) {
+  const regionScale = Math.abs(Number(widget.get('scale')) || 1);
+  return {
+    x: Number(widget.get('x')) || 0,
+    y: Number(widget.get('y')) || 0,
+    width: Math.max(1, Number(widget.get('width')) || 1) * regionScale,
+    height: Math.max(1, Number(widget.get('height')) || 1) * regionScale
+  };
+}
+
+/**
+ * Fit a logical board region into the current board viewport for this client only.
+ * The board itself keeps its configured aspect ratio; arbitrary region ratios are centered
+ * and fitted without cropping. No room state is changed and other players are unaffected.
+ */
+export function focusCameraRegionWidget(widget) {
+  if(!widget)
+    return false;
+
+  const region = cameraRegionBounds(widget);
+  const targetZoom = clampZoomLevel(Math.min(
+    viewportConfig.targetWidth / region.width,
+    viewportConfig.targetHeight / region.height
+  ));
+
+  const visibleWidth = viewportConfig.targetWidth / targetZoom;
+  const visibleHeight = viewportConfig.targetHeight / targetZoom;
+  const targetLeft = region.x - (visibleWidth - region.width) / 2;
+  const targetTop = region.y - (visibleHeight - region.height) / 2;
+
+  setZoomLevel(targetZoom);
+  setPan(-targetLeft * scale * targetZoom, -targetTop * scale * targetZoom);
+  return true;
+}
+
+export function focusPrimaryCameraRegion() {
+  return focusCameraRegionWidget(primaryCameraRegionWidget());
+}
+
+function setCameraRegionControlCollapsed(collapsed) {
+  localStorage.setItem(CAMERA_REGION_COLLAPSED_KEY, collapsed ? 'true' : 'false');
+  refreshCameraRegionControl();
+}
+
+function ensureCameraRegionControl() {
+  let shell = document.getElementById(CAMERA_REGION_CONTROL_ID);
+  if(shell)
+    return shell;
+
+  shell = document.createElement('div');
+  shell.id = CAMERA_REGION_CONTROL_ID;
+  shell.style.cssText = 'position:fixed;right:calc(18px + env(safe-area-inset-right,0px));bottom:calc(18px + env(safe-area-inset-bottom,0px));z-index:10020;display:none;align-items:stretch;gap:6px;pointer-events:auto;font-family:inherit;';
+
+  const focusButton = document.createElement('button');
+  focusButton.id = CAMERA_REGION_FOCUS_ID;
+  focusButton.type = 'button';
+  focusButton.addEventListener('click', () => focusPrimaryCameraRegion());
+
+  const collapseButton = document.createElement('button');
+  collapseButton.id = CAMERA_REGION_COLLAPSE_ID;
+  collapseButton.type = 'button';
+  collapseButton.addEventListener('click', () => {
+    const collapsed = localStorage.getItem(CAMERA_REGION_COLLAPSED_KEY) === 'true';
+    setCameraRegionControlCollapsed(!collapsed);
+  });
+
+  shell.appendChild(focusButton);
+  shell.appendChild(collapseButton);
+  document.body.appendChild(shell);
+  return shell;
+}
+
+function refreshCameraRegionControl() {
+  const shell = ensureCameraRegionControl();
+  const focusButton = document.getElementById(CAMERA_REGION_FOCUS_ID);
+  const collapseButton = document.getElementById(CAMERA_REGION_COLLAPSE_ID);
+  const region = primaryCameraRegionWidget();
+
+  if(!focusButton || !collapseButton)
+    return;
+
+  if(!region) {
+    shell.style.display = 'none';
+    cameraRegionAutoFocusDone = false;
+    cameraRegionAutoFocusRegionID = null;
+    return;
+  }
+
+  shell.style.display = 'flex';
+  const label = String(region.get('cameraRegionLabel') || '🎯 Focus region');
+  const collapsed = localStorage.getItem(CAMERA_REGION_COLLAPSED_KEY) === 'true';
+
+  focusButton.textContent = collapsed ? '🎯' : label;
+  focusButton.title = label;
+  focusButton.setAttribute('aria-label', label);
+  focusButton.style.cssText = collapsed
+    ? 'width:52px;min-width:52px;height:52px;padding:0;border:1px solid #b99552;border-radius:14px;background:#203b33ee;color:#ffe3a1;font-size:24px;font-weight:700;box-shadow:0 4px 14px #0009;cursor:pointer;backdrop-filter:blur(4px);'
+    : 'min-width:168px;height:60px;padding:0 18px;border:1px solid #b99552;border-radius:14px;background:#203b33ee;color:#ffe3a1;font-size:18px;font-weight:700;box-shadow:0 4px 14px #0009;cursor:pointer;backdrop-filter:blur(4px);';
+
+  collapseButton.textContent = collapsed ? '›' : '‹';
+  collapseButton.title = collapsed ? 'Expand camera button' : 'Collapse camera button';
+  collapseButton.setAttribute('aria-label', collapseButton.title);
+  collapseButton.style.cssText = collapsed
+    ? 'width:24px;height:52px;padding:0;border:1px solid #75887f;border-radius:10px;background:#172822e8;color:#d7e3dd;font-size:17px;font-weight:700;box-shadow:0 3px 10px #0007;cursor:pointer;'
+    : 'width:30px;height:60px;padding:0;border:1px solid #75887f;border-radius:10px;background:#172822e8;color:#d7e3dd;font-size:20px;font-weight:700;box-shadow:0 3px 10px #0007;cursor:pointer;';
+
+  const regionID = region.get('id');
+  if(cameraRegionAutoFocusRegionID !== regionID) {
+    cameraRegionAutoFocusRegionID = regionID;
+    cameraRegionAutoFocusDone = false;
+  }
+
+  if(!cameraRegionAutoFocusDone && region.get('cameraRegionAutoFocus')) {
+    cameraRegionAutoFocusDone = true;
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      const currentRegion = primaryCameraRegionWidget();
+      if(currentRegion && currentRegion.get('id') === regionID)
+        focusCameraRegionWidget(currentRegion);
+    }));
+  }
 }
 
 onLoad(function() {
@@ -193,7 +326,8 @@ onLoad(function() {
     lastWheelZoomTime = now;
 
     const delta = e.deltaY > 0 ? 0.85 : 1.15;
-    setZoomAroundPoint(clampZoomLevel(zoomScale * delta), e.clientX, e.clientY);
+    const newZoomLevel = clampZoomLevel(zoomScale * delta);
+    setZoomAroundPoint(newZoomLevel, e.clientX, e.clientY);
   });
 
   // Page up/down zoom in consistent 0.1x steps across the full supported range.
@@ -361,4 +495,7 @@ onLoad(function() {
   window.addEventListener('mousedown', e => pressedMouseButtons.add(e.button), true);
   window.addEventListener('mouseup', e => pressedMouseButtons.delete(e.button), true);
   window.addEventListener('blur', handleWindowBlur);
+
+  refreshCameraRegionControl();
+  window.setInterval(refreshCameraRegionControl, 750);
 });
