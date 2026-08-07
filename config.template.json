@@ -1,7 +1,7 @@
 {
   "serverName": "VirtualTabletop.io",
   "port": 8272,
-  "externalURL": "http://localhost:8272",
+  "externalURL": "https://vtt.insar.top",
   "urlPrefix": "",
   "minifyJavascript": false,
   "forceTracing": false,
@@ -12,10 +12,12 @@
   "allowPublicLibraryEdits": false,
   "adminURL": null,
 
-  "voiceLiveKitURL": "",
+  "voiceLiveKitURL": "wss://livekit.vtt.insar.top",
   "voiceLiveKitClientURL": "https://cdn.jsdelivr.net/npm/livekit-client@2.21.0/dist/livekit-client.umd.min.js",
   "voiceP2PMaxParticipants": 4,
-  "voiceSTUNURLs": [],
+  "voiceSTUNURLs": [
+    "stun:livekit.vtt.insar.top:3478"
+  ],
 
   "directories": {
     "library": "library",
