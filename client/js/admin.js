@@ -148,7 +148,7 @@ async function renderHolderPanel(panel, state, version) {
   const body = document.createElement('tbody');
   inspection.cards.forEach((card, index) => {
     const row = document.createElement('tr');
-    const parentPath = [...card.ancestry, card.widget.parent].filter(Boolean).join(' → ');
+    const parentPath = card.ancestry.length ? card.ancestry.join(' → ') : String(card.widget.parent || '');
     const values = [
       String(index + 1),
       card.id,
