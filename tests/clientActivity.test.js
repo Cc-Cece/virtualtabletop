@@ -1,8 +1,9 @@
 import fs from 'fs';
+import path from 'path';
 
-const connectionSource = fs.readFileSync(new URL('../client/js/connection.js', import.meta.url), 'utf8');
-const activitySource = fs.readFileSync(new URL('../client/js/clientActivity.js', import.meta.url), 'utf8');
-const voiceActivitySource = fs.readFileSync(new URL('../client/js/voiceSpeakingActivity.js', import.meta.url), 'utf8');
+const connectionSource = fs.readFileSync(path.join(process.cwd(), 'client/js/connection.js'), 'utf8');
+const activitySource = fs.readFileSync(path.join(process.cwd(), 'client/js/clientActivity.js'), 'utf8');
+const voiceActivitySource = fs.readFileSync(path.join(process.cwd(), 'client/js/voiceSpeakingActivity.js'), 'utf8');
 
 describe('client activity indicators', () => {
   test('loads a generic client activity layer and a separate voice adapter', () => {
