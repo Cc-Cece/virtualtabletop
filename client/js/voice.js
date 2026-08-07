@@ -11,11 +11,21 @@ let p2pFallbackReported = false;
 let liveKitRoom = null;
 let liveKitTokenPending = false;
 let liveKitScriptPromise = null;
+let liveKitReconnectTimer = null;
 let localAnalyserCleanup = null;
 const peers = new Map();
 const queuedCandidates = new Map();
 const speakingSessions = new Set();
-const remoteVolumes = JSON.parse(localStorage.getItem('vttVoiceVolumes') || '{}');
+const remoteVolumes = readStoredVolumes();
+
+function readStoredVolumes() {
+  try {
+    const value = JSON.parse(localStorage.getItem('vttVoiceVolumes') || '{}');
+    return value && typeof value == 'object' && !Array.isArray(value) ? value : {};
+  } catch {
+    return {};
+  }
+}
 
 function secureMediaAvailable() {
   return !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia && (window.isSecureContext || [ 'localhost', '127.0.0.1', '::1' ].includes(location.hostname)));
@@ -62,9 +72,12 @@ function createVoiceUI() {
   `;
   document.body.appendChild(panel);
 
-  button.addEventListener('click', ()=>{
+  button.addEventListener('click', async ()=>{
     if(isLoading)
       return;
+    // This click is also the explicit user gesture required by restrictive autoplay
+    // policies. Retry any remote audio that may have been blocked previously.
+    await retryAudioPlayback();
     panel.hidden = !panel.hidden;
     if(!panel.hidden)
       updateVoiceUI();
@@ -115,6 +128,14 @@ function setVoiceStatus(text, error = false) {
     return;
   $('#voiceStatus').textContent = text;
   $('#voiceStatus').classList.toggle('error', error);
+}
+
+async function retryAudioPlayback() {
+  if(liveKitRoom?.startAudio)
+    await liveKitRoom.startAudio().catch(()=>{});
+  for(const element of $a('.voiceRemoteAudio'))
+    if(element.play)
+      await element.play().catch(()=>{});
 }
 
 function audioConstraints() {
@@ -578,6 +599,8 @@ async function connectLiveKit(args) {
   if(!voiceState?.joined || voiceState.activeTransport != 'sfu')
     return;
   liveKitTokenPending = false;
+  clearTimeout(liveKitReconnectTimer);
+  liveKitReconnectTimer = null;
   await disconnectLiveKit();
   const LivekitClient = await loadLiveKit();
   const room = new LivekitClient.Room({ adaptiveStream: false, dynacast: false });
@@ -606,10 +629,26 @@ async function connectLiveKit(args) {
       setSpeaking(voiceState.selfSessionID, true);
   });
   room.on(LivekitClient.RoomEvent.Disconnected, ()=>{
-    if(voiceState?.joined && voiceState.activeTransport == 'sfu')
-      setVoiceStatus('SFU voice disconnected. LiveKit will retry transient network failures automatically.', true);
+    // disconnectLiveKit clears the global room reference before intentional disconnects.
+    if(liveKitRoom !== room)
+      return;
+    liveKitRoom = null;
+    for(const element of $a('.voiceRemoteAudio'))
+      element.remove();
+    if(voiceState?.joined && voiceState.activeTransport == 'sfu') {
+      setVoiceStatus('SFU voice disconnected; reconnecting…', true);
+      clearTimeout(liveKitReconnectTimer);
+      liveKitReconnectTimer = setTimeout(()=>{
+        if(voiceState?.joined && voiceState.activeTransport == 'sfu' && !liveKitTokenPending) {
+          liveKitTokenPending = true;
+          toServer('voiceRequestSfuToken');
+        }
+      }, 2000);
+    }
   });
   await room.connect(args.url, args.token);
+  // This succeeds immediately on browsers that already allow playback. If a browser
+  // requires an explicit user gesture, clicking the Voice toolbar button retries it.
   if(room.startAudio)
     await room.startAudio().catch(()=>{});
   if(!muted)
@@ -626,14 +665,14 @@ function sessionIDFromLiveKitIdentity(identity) {
 async function replaceLiveKitMicrophone() {
   if(!liveKitRoom)
     return;
-  await liveKitRoom.localParticipant.setMicrophoneEnabled(false);
-  if(!muted)
-    await liveKitRoom.localParticipant.setMicrophoneEnabled(true, audioConstraints());
+  await liveKitRoom.switchActiveDevice('audioinput', selectedMicID || 'default');
   await refreshMicrophones();
 }
 
 async function disconnectLiveKit() {
   liveKitTokenPending = false;
+  clearTimeout(liveKitReconnectTimer);
+  liveKitReconnectTimer = null;
   if(liveKitRoom) {
     const room = liveKitRoom;
     liveKitRoom = null;
@@ -664,8 +703,18 @@ onLoad(function() {
   }));
   onMessage('voiceSignal', args=>handleVoiceSignal(args));
   onMessage('voiceSfuToken', args=>connectLiveKit(args).catch(e=>{
+    liveKitTokenPending = false;
     console.error('LiveKit connection failed.', e);
     setVoiceStatus(`SFU connection failed: ${e.message}`, true);
+    if(voiceState?.joined && voiceState.activeTransport == 'sfu') {
+      clearTimeout(liveKitReconnectTimer);
+      liveKitReconnectTimer = setTimeout(()=>{
+        if(!liveKitTokenPending) {
+          liveKitTokenPending = true;
+          toServer('voiceRequestSfuToken');
+        }
+      }, 3000);
+    }
   }));
   onMessage('voiceError', message=>setVoiceStatus(message, true));
   window.addEventListener('beforeunload', ()=>{
