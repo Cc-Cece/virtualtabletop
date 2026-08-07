@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>VirtualTabletop Room Admin</title>
+  <link rel="stylesheet" href="css/admin.css">
+</head>
+<body>
+  <main>
+    <header class="page-header">
+      <div>
+        <h1>Room Admin</h1>
+        <p>Read-only room inspection. This page does not join the game as a player.</p>
+      </div>
+      <div id="connection-status" data-state="pending">Disconnected</div>
+    </header>
+
+    <section class="connect-row" aria-label="Room connection">
+      <label for="room-id">Room ID</label>
+      <input id="room-id" autocomplete="off" spellcheck="false">
+      <button id="connect-room" type="button">Open room</button>
+    </section>
+
+    <section id="room-summary" class="summary" aria-label="Room summary"></section>
+    <div id="admin-panels" class="panels">
+      <p class="empty">Enter a room ID to begin.</p>
+    </div>
+
+    <footer>
+      V1 uses the existing read-only room-state endpoint. Authentication and a dedicated observer transport are intentionally deferred.
+    </footer>
+  </main>
+  <script type="module" src="js/admin.js"></script>
+</body>
+</html>
