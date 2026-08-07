@@ -1,0 +1,261 @@
+#voiceButton.voiceHidden,
+#voicePanel.voiceHidden {
+  display: none !important;
+}
+
+#voiceButton .voiceToolbarIcon {
+  font-size: 28px;
+  line-height: 1;
+}
+
+body.wideToolbar #voiceButton .voiceToolbarIcon,
+body.horizontalToolbar:not(.toolbarCompact2) #voiceButton .voiceToolbarIcon {
+  font-size: 23px;
+}
+
+.voicePanel {
+  position: fixed;
+  z-index: 8;
+  top: 12px;
+  left: calc(var(--toolbarSize) + 12px);
+  width: min(360px, calc(100vw - var(--toolbarSize) - 24px));
+  max-height: calc(100vh - 24px);
+  overflow: auto;
+  box-sizing: border-box;
+  padding: 12px;
+  border: 1px solid #0003;
+  border-radius: 10px;
+  background: #f8fafc;
+  color: #20242a;
+  box-shadow: 0 8px 28px #0005;
+  transform: translateX(-12px);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .12s ease, transform .12s ease;
+}
+
+.voicePanel.open {
+  transform: translateX(0);
+  opacity: 1;
+  pointer-events: auto;
+}
+
+body.horizontalToolbar .voicePanel {
+  top: 12px;
+  left: 12px;
+  width: min(360px, calc(100vw - 24px));
+  max-height: calc(100vh - var(--toolbarSize) - 24px);
+}
+
+.voiceHeader,
+.voiceHeader > div,
+.voicePrimaryActions,
+.voiceParticipant {
+  display: flex;
+  align-items: center;
+}
+
+.voiceHeader {
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.voiceHeader > div {
+  gap: 8px;
+}
+
+.voiceHeader strong {
+  font-size: 18px;
+}
+
+#voicePanelClose {
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  font-size: 24px;
+  cursor: pointer;
+}
+
+#voicePanelClose:hover {
+  background: #0001;
+}
+
+#voiceRouteBadge {
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: #66708518;
+  color: #475467;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+#voiceRouteBadge[data-mode="p2p"] {
+  background: #1570ef18;
+  color: #175cd3;
+}
+
+#voiceRouteBadge[data-mode="sfu"] {
+  background: #03985518;
+  color: #027a48;
+}
+
+.voiceStatus {
+  min-height: 18px;
+  margin-bottom: 10px;
+  color: #475467;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.voiceStatus.error {
+  color: #b42318;
+}
+
+.voicePrimaryActions {
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.voicePrimaryActions button {
+  flex: 1;
+  min-height: 34px;
+  border: 1px solid #98a2b3;
+  border-radius: 7px;
+  background: white;
+  cursor: pointer;
+}
+
+#voiceJoin {
+  border-color: #175cd3;
+  background: #1570ef;
+  color: white;
+}
+
+#voiceMic.muted {
+  border-color: #f04438;
+  color: #b42318;
+}
+
+.voicePrimaryActions button:disabled,
+.voiceField select:disabled {
+  cursor: not-allowed;
+  opacity: .55;
+}
+
+.voiceField {
+  display: grid;
+  grid-template-columns: 94px 1fr;
+  align-items: center;
+  gap: 8px;
+  margin: 7px 0;
+  font-size: 12px;
+  color: #475467;
+}
+
+.voiceField select {
+  min-width: 0;
+  height: 32px;
+  border: 1px solid #d0d5dd;
+  border-radius: 6px;
+  background: white;
+  color: #20242a;
+}
+
+.voiceParticipantsHeader {
+  margin: 13px 0 6px;
+  padding-top: 10px;
+  border-top: 1px solid #eaecf0;
+  color: #475467;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .03em;
+}
+
+.voiceParticipants {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.voiceEmpty {
+  padding: 9px;
+  border-radius: 6px;
+  background: #f2f4f7;
+  color: #667085;
+  font-size: 12px;
+}
+
+.voiceParticipant {
+  gap: 7px;
+  min-height: 34px;
+  padding: 4px 6px;
+  border-radius: 7px;
+  background: #f2f4f7;
+}
+
+.voiceSpeakingDot {
+  width: 8px;
+  height: 8px;
+  flex: 0 0 8px;
+  border-radius: 50%;
+  background: #98a2b3;
+  transition: background .08s ease, box-shadow .08s ease;
+}
+
+.voiceParticipant.speaking .voiceSpeakingDot {
+  background: #12b76a;
+  box-shadow: 0 0 0 3px #12b76a22;
+}
+
+.voiceParticipantName {
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.voiceLocalState {
+  color: #667085;
+  font-size: 10px;
+}
+
+.voicePeerMute {
+  width: 30px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  cursor: pointer;
+}
+
+.voicePeerMute:hover {
+  background: #0001;
+}
+
+.voicePeerVolume {
+  width: 74px;
+  accent-color: var(--VTTblue);
+}
+
+@media (max-width: 520px) {
+  .voicePanel {
+    width: calc(100vw - var(--toolbarSize) - 18px);
+    left: calc(var(--toolbarSize) + 6px);
+  }
+  body.horizontalToolbar .voicePanel {
+    width: calc(100vw - 12px);
+    left: 6px;
+  }
+  .voicePeerVolume {
+    width: 58px;
+  }
+}
