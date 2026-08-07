@@ -1,5 +1,6 @@
 import Config from './config.mjs';
 import Logging from './logging.mjs';
+import voiceForRoom from './voice.mjs';
 
 export default class Player {
   static nextSessionID = 1;
@@ -9,6 +10,7 @@ export default class Player {
     this.name = name;
     this.room = room;
     this.sessionID = Player.nextSessionID++;
+    this.voice = voiceForRoom(room);
 
     this.latestDeltaIDbyDifferentPlayer = this.room.deltaID;
     this.waitingForStateConfirmation = false;
@@ -19,14 +21,17 @@ export default class Player {
   }
 
   connectionClosed = (func, args) => {
+    this.voice.disconnect(this);
     this.room.removePlayer(this);
   }
 
   messageReceived = async (func, args) => {
-    if([ 'delta', 'mouse', 'trace' ].indexOf(func) == -1)
+    if([ 'delta', 'mouse', 'trace', 'voiceSignal', 'voiceQuality' ].indexOf(func) == -1)
       this.trace('messageReceived', { func, args });
 
     try {
+      if(typeof func == 'string' && func.startsWith('voice'))
+        return this.voice.handle(this, func, args);
       if(func == 'addLocalPlayer')
         this.room.addLocalPlayer(this, args.player);
       if(func == 'addStateToPublicLibrary')

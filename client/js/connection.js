@@ -4,6 +4,7 @@ let connection;
 let serverStart = null;
 let userNavigatedAway = false;
 let messageCallbacks = {};
+let lastMessages = {};
 
 //used by unit tests until jest supports mocking ESM static imports
 export function mockConnection() {
@@ -55,6 +56,8 @@ export function startWebSocket() {
       return;
     }
 
+    lastMessages[func] = args;
+
     if(func == 'serverStart') {
       if(serverStart != null && serverStart != args) {
         console.log('Server restart detected. Reloading...')
@@ -89,6 +92,26 @@ function preventReconnect() {
 
 function log(str) {
   toServer('trace', str);
+}
+
+// Voice is implemented as a separately loaded browser module so the core VTT bundle does not
+// depend on WebRTC or LiveKit. This bridge deliberately exposes only the existing message bus.
+// No game state or private widget data is made available to the voice module.
+if(typeof window != 'undefined') {
+  window.vttVoiceTransport = {
+    onMessage,
+    toServer,
+    lastMessage: func=>lastMessages[func],
+    isOpen: ()=>connection?.readyState === WebSocket.OPEN
+  };
+  if(!document.getElementById('voiceModule')) {
+    const voiceModule = document.createElement('script');
+    voiceModule.id = 'voiceModule';
+    voiceModule.type = 'module';
+    voiceModule.src = new URL('js/voice.js', document.baseURI).href;
+    voiceModule.onerror = error=>console.error('Could not load voice module.', error);
+    document.head.appendChild(voiceModule);
+  }
 }
 
 window.onbeforeunload = function() {
