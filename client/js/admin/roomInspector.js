@@ -7,10 +7,11 @@ function sortTopFirst(entries) {
 }
 
 export function getAdminPanels(state) {
+  const configPanels = state?.['admin-console-config']?.adminPanels;
   const meta = state?._meta;
   const active = meta?.activeState;
   const activeInfo = active && meta?.states?.[active.stateID];
-  const panels = activeInfo?.adminPanels ?? meta?.info?.adminPanels;
+  const panels = configPanels ?? activeInfo?.adminPanels ?? meta?.info?.adminPanels;
   if(!Array.isArray(panels))
     return [];
 
