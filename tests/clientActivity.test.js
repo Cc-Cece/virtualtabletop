@@ -16,7 +16,7 @@ describe('client activity indicators', () => {
 
   test('keeps activity transient and local to indicator DOM state', () => {
     expect(activitySource).toContain("const EVENT_NAME = 'vtt-client-activity';");
-    expect(activitySource).toContain('clientActivityIndicator');
+    expect(activitySource).toContain('transport.indicators()');
     expect(activitySource).toContain('playerIsActive(indicator.source, indicator.player)');
     expect(activitySource).toContain('data-vtt-client-activity-active');
     expect(activitySource).not.toContain("toServer('");
