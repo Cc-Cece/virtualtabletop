@@ -30,7 +30,7 @@ export default class Player {
       this.trace('messageReceived', { func, args });
 
     try {
-      if(func.startsWith('voice'))
+      if(typeof func == 'string' && func.startsWith('voice'))
         return this.voice.handle(this, func, args);
       if(func == 'addLocalPlayer')
         this.room.addLocalPlayer(this, args.player);
