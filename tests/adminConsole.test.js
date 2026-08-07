@@ -2,15 +2,13 @@ import { getAdminPanels, inspectHolder, physicalOrderKey } from '../client/js/ad
 
 describe('room admin holder inspector', () => {
   const state = {
-    _meta: {
-      activeState: { stateID: 'game', variantID: '0' },
-      states: {
-        game: {
-          adminPanels: [
-            { id: 'draw', type: 'holderInspector', title: 'Draw pile', holder: 'draw-pile' },
-          ],
-        },
-      },
+    _meta: { version: 21, gameSettings: {} },
+    'admin-console-config': {
+      type: 'basic',
+      display: false,
+      adminPanels: [
+        { id: 'draw', type: 'holderInspector', title: 'Draw pile', holder: 'draw-pile' },
+      ],
     },
     'draw-pile': { type: 'holder' },
     'main-deck': {
@@ -28,7 +26,7 @@ describe('room admin holder inspector', () => {
     'card-3': { type: 'card', parent: 'pile-1', deck: 'main-deck', cardType: 'type-3', z: 11 },
   };
 
-  test('reads declarations from active game metadata', () => {
+  test('reads declarations from the hidden room-state config widget', () => {
     expect(getAdminPanels(state)).toEqual([
       { id: 'draw', type: 'holderInspector', title: 'Draw pile', holder: 'draw-pile' },
     ]);
