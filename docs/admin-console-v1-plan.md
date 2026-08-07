@@ -10,10 +10,14 @@ Add a separate, read-only room inspection page that can be opened in another bro
 - Open a room by query parameter, for example `/admin.html?room=ABCD`.
 - Reuse the existing read-only `GET /state/:room` endpoint on a short polling interval.
 - Keep the admin page completely separate from the tabletop UI and player lifecycle.
-- Read game-defined panel declarations from `_meta.info.adminPanels` / active-state metadata.
+- Read game-defined panel declarations from a hidden `admin-console-config` state widget.
 - Implement one generic panel type: `holderInspector`.
 - For a holder inspector, show direct-child structure, recursively flattened physical card order, card metadata resolved through deck/cardType, and current z/parent values.
 - Keep the transport behind a small state-source abstraction so polling can later be replaced with an observer WebSocket without changing panel rendering.
+
+## Why a config widget
+
+The existing public room-state endpoint intentionally returns only limited `_meta` data, so game-specific admin declarations cannot depend on `_meta.info`. A hidden normal state widget survives the same read-only state transport as the objects being inspected and requires no server protocol change.
 
 ## Explicit non-goals for V1
 
@@ -29,10 +33,13 @@ If/when the admin transport is isolated from the public state endpoint, add one 
 
 ## Game package contract
 
-Games may declare panels using data only:
+Games may add one hidden state widget containing data-only declarations:
 
 ```json
 {
+  "id": "admin-console-config",
+  "type": "basic",
+  "display": false,
   "adminPanels": [
     {
       "id": "draw-pile-audit",
