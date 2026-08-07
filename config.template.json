@@ -12,6 +12,16 @@
   "allowPublicLibraryEdits": false,
   "adminURL": null,
 
+  "voice": {
+    "enabled": false,
+    "defaultEnabledForGames": false,
+    "defaultMode": "auto",
+    "p2pMaxParticipants": 4,
+    "stunUrls": ["stun:stun.cloudflare.com:3478"],
+    "livekitURL": "",
+    "livekitClientURL": "https://cdn.jsdelivr.net/npm/livekit-client@2.21.0/dist/livekit-client.umd.min.js"
+  },
+
   "directories": {
     "library": "library",
     "save": "save",

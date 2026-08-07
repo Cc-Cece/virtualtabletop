@@ -1,5 +1,6 @@
 import Config from './config.mjs';
 import Logging from './logging.mjs';
+import Voice from './voice.mjs';
 
 export default class Player {
   static nextSessionID = 1;
@@ -19,14 +20,24 @@ export default class Player {
   }
 
   connectionClosed = (func, args) => {
+    // Remove the closed websocket from room.players before broadcasting the new
+    // voice state so voice cleanup never attempts to send to the dead socket.
     this.room.removePlayer(this);
+    Voice.playerDisconnected(this);
   }
 
   messageReceived = async (func, args) => {
-    if([ 'delta', 'mouse', 'trace' ].indexOf(func) == -1)
+    // SDP and ICE candidates can contain private network information. Keep every
+    // voice transport message out of the room trace and let the dedicated voice
+    // service validate and route it instead.
+    if([ 'delta', 'mouse', 'trace' ].indexOf(func) == -1 && !String(func).startsWith('voice'))
       this.trace('messageReceived', { func, args });
 
     try {
+      if(String(func).startsWith('voice')) {
+        await Voice.handleMessage(this, func, args);
+        return;
+      }
       if(func == 'addLocalPlayer')
         this.room.addLocalPlayer(this, args.player);
       if(func == 'addStateToPublicLibrary')

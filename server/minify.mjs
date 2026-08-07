@@ -63,6 +63,7 @@ export default async function minifyHTML() {
     'client/css/overlays/connectionlost.css',
     'client/css/overlays/about.css',
     'client/css/overlays/welcome.css',
+    'client/css/voice.css',
 
     'client/css/widgets/basicwidget.css',
     'client/css/widgets/imagewidget.css',
@@ -102,6 +103,7 @@ export default async function minifyHTML() {
     'client/js/audio.js',
 
     'client/js/overlays/players.js',
+    'client/js/voice.js',
     'client/js/overlays/states.js',
     'client/js/overlays/welcome.js',
 
