@@ -14,6 +14,7 @@ class PollingRoomStateSource {
     this.interval = interval;
     this.timer = null;
     this.stopped = false;
+    this.inFlight = false;
   }
 
   stateURL() {
@@ -22,8 +23,9 @@ class PollingRoomStateSource {
   }
 
   async poll() {
-    if(this.stopped)
+    if(this.stopped || this.inFlight)
       return;
+    this.inFlight = true;
     try {
       const response = await fetch(this.stateURL(), { cache: 'no-store' });
       if(!response.ok)
@@ -31,6 +33,8 @@ class PollingRoomStateSource {
       this.onState(await response.json());
     } catch(error) {
       this.onError(error);
+    } finally {
+      this.inFlight = false;
     }
   }
 
@@ -59,12 +63,6 @@ function text(tag, value, className) {
   return node;
 }
 
-function activeGameInfo(state) {
-  const meta = state?._meta;
-  const active = meta?.activeState;
-  return active && meta?.states?.[active.stateID] || meta?.info || {};
-}
-
 async function shortHash(value) {
   if(!globalThis.crypto?.subtle)
     return 'unavailable';
@@ -74,12 +72,11 @@ async function shortHash(value) {
 }
 
 function renderOverview(state) {
-  const info = activeGameInfo(state);
   const widgetCount = Object.keys(state || {}).filter(id => id != '_meta').length;
   const values = [
-    ['Game', info.name || 'Unknown'],
+    ['Room', roomInput.value.trim() || '—'],
     ['Widgets', String(widgetCount)],
-    ['Delta', String(state?._meta?.deltaID ?? '—')],
+    ['State version', String(state?._meta?.version ?? '—')],
   ];
 
   roomSummary.replaceChildren();
