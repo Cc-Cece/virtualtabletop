@@ -12,6 +12,11 @@
   "allowPublicLibraryEdits": false,
   "adminURL": null,
 
+  "voiceLiveKitURL": "",
+  "voiceLiveKitClientURL": "https://cdn.jsdelivr.net/npm/livekit-client@2.21.0/dist/livekit-client.umd.min.js",
+  "voiceP2PMaxParticipants": 4,
+  "voiceSTUNURLs": [],
+
   "directories": {
     "library": "library",
     "save": "save",
