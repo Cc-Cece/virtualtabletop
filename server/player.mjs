@@ -20,8 +20,10 @@ export default class Player {
   }
 
   connectionClosed = (func, args) => {
-    Voice.playerDisconnected(this);
+    // Remove the closed websocket from room.players before broadcasting the new
+    // voice state so voice cleanup never attempts to send to the dead socket.
     this.room.removePlayer(this);
+    Voice.playerDisconnected(this);
   }
 
   messageReceived = async (func, args) => {
