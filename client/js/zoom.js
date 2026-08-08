@@ -27,6 +27,8 @@ export function clampZoomLevel(zoomLevel) {
 }
 
 function clampHoverPreviewPercent(value) {
+  if(value === null || value === '')
+    return HOVER_PREVIEW_DEFAULT_PERCENT;
   const parsed = Number(value);
   if(!Number.isFinite(parsed))
     return HOVER_PREVIEW_DEFAULT_PERCENT;
@@ -93,9 +95,9 @@ function ensureHoverPreviewControl() {
 
   const output = document.createElement('output');
   output.id = HOVER_PREVIEW_VALUE_ID;
-  output.htmlFor = HOVER_PREVIEW_SLIDER_ID;
+  output.setAttribute('for', HOVER_PREVIEW_SLIDER_ID);
   output.textContent = `${hoverPreviewPercent}%`;
-  output.style.cssText = 'min-width:38px;padding-right:4px;font-size:12px;text-align:right;font-variant-numeric:tabular-nums;';
+  output.style.cssText = 'display:flex;align-items:center;justify-content:flex-end;min-width:38px;padding-right:4px;font-size:12px;font-variant-numeric:tabular-nums;';
 
   slider.addEventListener('input', e => setHoverPreviewPercent(e.target.value));
 
