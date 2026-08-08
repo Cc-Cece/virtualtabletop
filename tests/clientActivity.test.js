@@ -4,6 +4,7 @@ import path from 'path';
 const connectionSource = fs.readFileSync(path.join(process.cwd(), 'client/js/connection.js'), 'utf8');
 const activitySource = fs.readFileSync(path.join(process.cwd(), 'client/js/clientActivity.js'), 'utf8');
 const voiceActivitySource = fs.readFileSync(path.join(process.cwd(), 'client/js/voiceSpeakingActivity.js'), 'utf8');
+const layoutSource = fs.readFileSync(path.join(process.cwd(), 'client/css/layout.css'), 'utf8');
 
 describe('client activity indicators', () => {
   test('loads a generic client activity layer and a separate voice adapter', () => {
@@ -21,6 +22,14 @@ describe('client activity indicators', () => {
     expect(activitySource).toContain('data-vtt-client-activity-active');
     expect(activitySource).not.toContain("toServer('");
     expect(activitySource).not.toMatch(/sanguosha|player-module|play-phase/i);
+  });
+
+  test('lets an active indicator override the normal hidden widget rule', () => {
+    expect(layoutSource).toContain('body:not(.edit) .widget.foreign, body:not(.edit) .widget.hidden');
+    expect(activitySource).toContain(
+      'body:not(.edit) .widget.hidden[data-vtt-client-activity-indicator="true"][data-vtt-client-activity-active="true"]'
+    );
+    expect(activitySource).toContain('display: block !important;');
   });
 
   test('aggregates player activity by session', () => {
