@@ -23,8 +23,22 @@ function i18nCanonicalSearchText(state) {
   ].filter(value=>value !== undefined && value !== null).join(' ');
 }
 
+function preserveCanonicalFilterValues() {
+  // Several legacy filters use <option>Any</option> without an explicit value.
+  // Translating the option text would therefore also change its value and break
+  // updateLibraryFilter(), which deliberately compares against the canonical
+  // string "Any". Keep presentation text localized while the internal value
+  // remains stable.
+  for(const selector of [ '#filterByPlayers', '#filterByDuration', '#filterByLanguage', '#filterByMode', '#filterByAi' ]) {
+    const option = $(`${selector} option:first-child`);
+    if(option)
+      option.value = 'Any';
+  }
+}
+
 function refreshI18nSearchIndex() {
   i18nSearchRefreshQueued = false;
+  preserveCanonicalFilterValues();
   if(!i18nSearchStates)
     return;
 
