@@ -34,6 +34,8 @@ The final systemd service health check remains authoritative: if dependencies ar
 
 The deployment checkout is intentionally disposable: GitHub `main` is the source of truth. The updater discards tracked server-side edits, synchronizes to `origin/main`, runs `npm ci` only when needed, restarts the service, and rolls back to the previous commit if the updated service does not start.
 
+When an update needs dependency installation, both the forward `npm ci` and any rollback dependency restore are capped at 60 seconds. A failed or timed-out forward install triggers rollback instead of leaving the updater stuck indefinitely.
+
 A clean, unchanged checkout is not restarted on every timer tick.
 
 Manual update:

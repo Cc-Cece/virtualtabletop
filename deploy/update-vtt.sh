@@ -35,7 +35,7 @@ fi
 
 cd "$REPO_DIR"
 
-for command in git sudo systemctl; do
+for command in git sudo systemctl timeout; do
   command -v "$command" >/dev/null 2>&1 || fail "$command is not available."
 done
 [[ -d .git ]] || fail "$REPO_DIR is not a Git working tree."
@@ -64,7 +64,8 @@ rollback() {
 
   git reset --hard "$old_head"
   if [[ "$old_lock" != "$new_lock" || "$dependencies_touched" == "1" ]]; then
-    npm ci || fail "Rollback restored the old commit, but npm dependencies could not be restored."
+    log "Restoring npm dependencies (maximum 60 seconds)"
+    timeout --signal=KILL 60s npm ci || fail "Rollback restored the old commit, but npm dependencies could not be restored within 60 seconds."
   fi
 
   service_cmd restart "$SERVICE_NAME.service" || fail "Rollback restored the old commit, but the service could not be restarted."
@@ -109,8 +110,8 @@ dependencies_touched=0
 
 if [[ ! -d node_modules || "$old_lock" != "$new_lock" ]]; then
   dependencies_touched=1
-  log "Installing exact npm dependencies"
-  npm ci || rollback "npm ci failed"
+  log "Installing exact npm dependencies (maximum 60 seconds)"
+  timeout --signal=KILL 60s npm ci || rollback "npm ci failed or timed out after 60 seconds"
 else
   log "package-lock.json unchanged; keeping existing node_modules"
 fi
