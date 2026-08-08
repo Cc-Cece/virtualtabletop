@@ -29,21 +29,30 @@ function parseGameURL() {
   }
 }
 
+function updateWelcomeTypeText(gameDetails) {
+  if(!gameDetails)
+    return;
+  const isTutorial = gameDetails.category == 'tutorial';
+  $('#welcomeGameType').innerText = t(isTutorial ? 'welcome.tutorial' : 'welcome.game');
+  $('#welcomeGameTypeHint').innerText = t(isTutorial ? 'welcome.checkOut' : 'welcome.startPlaying');
+}
+
 function checkForGameURL() {
   const gameDetails = parseGameURL();
   if(gameDetails) {
     fetch(`api/shareDetails/${gameDetails.id}`).then(async function(r) {
       const state = await r.json();
+      setI18nWelcomeState(state);
+      const displayState = localizeGameMeta(state);
 
-      applyValuesToDOM($('#linkDetailsOverlay'), state);
+      applyValuesToDOM($('#linkDetailsOverlay'), displayState);
       $('#welcomeJoinRoom').value = gameDetails.roomID || state.emptyRoomID;
 
       if(state.name) {
         $('#welcomePlayerName').value = playerName;
-        $('#welcomeGameName').innerText = state.name;
+        $('#welcomeGameName').innerText = displayState.name;
         emojis2images($('#welcomeGameName'));
-        $('#welcomeGameType').innerText = gameDetails.category || 'game';
-        $('#welcomeGameTypeHint').innerText = gameDetails.category == 'tutorial' ? 'check it out' : 'start playing it';
+        updateWelcomeTypeText(gameDetails);
         $('#welcomeUserGenerated').style.display = gameDetails.type == 'public' ? 'none' : 'block';
         toggleClass($('#linkDetailsOverlay .star'),               'hidden',       gameDetails.type == 'user' || !state.stars);
         toggleClass($('#linkDetailsOverlay .mainStateImage > i'), 'hidden',       gameDetails.type == 'public');
@@ -52,24 +61,24 @@ function checkForGameURL() {
         toggleClass($('#linkDetailsOverlay .ai-imagery-notice'),  'hidden',       !state.usesAIImagery);
 
         let tabSuffix = config.customTab || config.serverName || 'VirtualTabletop.io';
-        document.title = `${state.name} - ${tabSuffix}`;
+        document.title = `${displayState.name} - ${tabSuffix}`;
 
         showOverlay('linkDetailsOverlay');
         if(gameDetails.roomID)
           $('#welcomePlayButton').click();
       } else {
-        checkForGameURL_showError('Game not found!');
+        checkForGameURL_showError(t('welcome.notFound'));
       }
     });
   } else if(location.href.includes('/game/') || location.href.includes('/tutorial/') || location.href.includes('/library/')) {
-    checkForGameURL_showError('Invalid game name!');
+    checkForGameURL_showError(t('welcome.invalidName'));
   }
 }
 
 function checkForGameURL_showError(text) {
   $('#loadingRoomIndicator').innerText = text;
   div($('#topSurface'), '', `
-    <button icon=close>Create an empty room</button>
+    <button icon=close>${html(t('welcome.emptyRoom'))}</button>
   `);
   $('#topSurface button').onclick = _=>location.href = getBaseURL();
 }
@@ -77,12 +86,12 @@ function checkForGameURL_showError(text) {
 async function playButtonClick(updateProgress) {
   const share = parseGameURL();
 
-  updateProgress('Joining room...');
+  updateProgress(t('welcome.joining'));
   if(!$('#welcomeJoinRoom').value.match(/^[A-Za-z0-9_-]+$/))
     throw new Error('Invalid room name');
   lastOverlay = 'linkDetailsOverlay';
   await joinRoom($('#welcomeJoinRoom').value);
-  updateProgress('Adding game...');
+  updateProgress(t('welcome.adding'));
   toServer('rename', { oldName: playerName, newName: $('#welcomePlayerName').value });
   const stateID = await addSharedGame(share.id);
   $('#statesButton').click();
@@ -139,5 +148,6 @@ onLoad(function() {
     };
   }
 
+  window.addEventListener('vtt-languagechange', _=>updateWelcomeTypeText(parseGameURL()));
   window.onpopstate = _=>location.reload();
 });
