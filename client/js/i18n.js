@@ -17,8 +17,12 @@ const VTT_I18N_MESSAGES = {
     'toolbar.show': 'Show Toolbar',
     'room.loading': 'Loading room...',
     'room.play': 'Play',
+    'room.askID': 'Please enter an ID and ask your friend to enter the same one:',
     'room.return': 'Return',
     'room.returnHint': 'In order to switch games, please return to the main server:',
+    'input.button': 'Button Input',
+    'input.waiting': 'Waiting on other players',
+    'input.waitingHint': 'No action required. Pressing the Cancel button will force close the input for everyone and all choices will be lost.',
     'common.search': 'Search',
     'common.any': 'Any',
     'common.none': 'None',
@@ -34,7 +38,11 @@ const VTT_I18N_MESSAGES = {
     'players.connections': 'Connections',
     'players.addPlaceholder': 'Add a player who shares this device',
     'players.addTitle': 'Add a player who shares this device',
+    'players.addSwitchTitle': 'Add a player and switch this browser tab to them',
     'players.shareTitle': 'Share the room URL so other players can join',
+    'players.renameTitle': 'Rename this player and update all references to it in the game',
+    'players.viewTitle': 'View the game as this player: only this browser tab switches over and the game stays unchanged',
+    'players.removeTitle': 'Remove this player',
     'players.invite': 'Invite players to',
     'players.connected': 'connected',
     'players.notConnected': 'not connected',
@@ -65,13 +73,12 @@ const VTT_I18N_MESSAGES = {
     'library.emptyNoPublic': 'Your personal game library is currently empty.<br>Use the "Add game" button above or drag VTT files here.',
     'library.noResults': 'No games displayed.<br>Adjust the filters above to show them.',
     'library.similarTo': 'Similar to {name}',
+    'library.similarPrefix': 'Similar to:',
     'library.time': 'Time:',
     'library.minutes': 'minutes',
     'library.mode': 'Mode:',
     'library.skill': 'Skill:',
     'library.play': 'Play',
-    'library.previous': 'Previous',
-    'library.next': 'Next',
     'library.importNotes': 'Import notes',
     'library.howToPlay': 'How to play the game',
     'library.howToUse': 'How to use this implementation',
@@ -84,9 +91,6 @@ const VTT_I18N_MESSAGES = {
     'saveGame.button': 'Save game',
     'share.title': 'Share link',
     'share.publicInfo': 'Use this link to tell your friends about this specific game in the public library.',
-    'share.loading': 'Loading link...',
-    'welcome.hello': 'Welcome to VirtualTabletop.io!',
-    'welcome.platform': 'On this platform you can play games with family and friends directly in your browser. No accounts necessary.',
     'welcome.roomUrl': 'Room URL:',
     'welcome.playerName': 'Player name:',
     'welcome.createRoom': 'Create room',
@@ -99,7 +103,7 @@ const VTT_I18N_MESSAGES = {
     'welcome.emptyRoom': 'Create an empty room',
     'welcome.joining': 'Joining room...',
     'welcome.adding': 'Adding game...',
-    'welcome.userGenerated': 'This game is user-generated content for which VirtualTabletop.io holds no responsibility or liability.'
+    'about.title': 'About VirtualTabletop.io'
   },
   'zh-CN': {
     'language.label': '语言',
@@ -116,8 +120,12 @@ const VTT_I18N_MESSAGES = {
     'toolbar.show': '显示工具栏',
     'room.loading': '正在加载房间…',
     'room.play': '开始游戏',
+    'room.askID': '请输入一个 ID，并让朋友输入相同的 ID：',
     'room.return': '返回',
     'room.returnHint': '如需切换游戏，请返回主服务器：',
+    'input.button': '按钮输入',
+    'input.waiting': '正在等待其他玩家',
+    'input.waitingHint': '当前无需操作。按下“取消”会强制关闭所有人的输入，本次所有选择都会丢失。',
     'common.search': '搜索',
     'common.any': '不限',
     'common.none': '无',
@@ -133,7 +141,11 @@ const VTT_I18N_MESSAGES = {
     'players.connections': '连接',
     'players.addPlaceholder': '添加一名共用此设备的玩家',
     'players.addTitle': '添加一名共用此设备的玩家',
+    'players.addSwitchTitle': '添加玩家并将当前浏览器标签切换为该玩家',
     'players.shareTitle': '分享房间链接，让其他玩家加入',
+    'players.renameTitle': '重命名该玩家，并更新游戏中对该玩家的引用',
+    'players.viewTitle': '以该玩家视角查看游戏；仅切换当前浏览器标签，不改变游戏状态',
+    'players.removeTitle': '移除该玩家',
     'players.invite': '邀请玩家加入',
     'players.connected': '已连接',
     'players.notConnected': '未连接',
@@ -164,13 +176,12 @@ const VTT_I18N_MESSAGES = {
     'library.emptyNoPublic': '你的个人游戏库目前为空。<br>可以点击上方“添加游戏”，或将 VTT 文件拖到这里。',
     'library.noResults': '没有符合条件的游戏。<br>请调整上方筛选条件。',
     'library.similarTo': '类似于 {name}',
+    'library.similarPrefix': '类似于：',
     'library.time': '时长：',
     'library.minutes': '分钟',
     'library.mode': '模式：',
     'library.skill': '难度：',
     'library.play': '开始',
-    'library.previous': '上一个',
-    'library.next': '下一个',
     'library.importNotes': '导入说明',
     'library.howToPlay': '游戏玩法',
     'library.howToUse': '此实现的使用说明',
@@ -183,9 +194,6 @@ const VTT_I18N_MESSAGES = {
     'saveGame.button': '保存游戏',
     'share.title': '分享链接',
     'share.publicInfo': '使用此链接向朋友分享公共游戏库中的这个游戏。',
-    'share.loading': '正在生成链接…',
-    'welcome.hello': '欢迎使用 VirtualTabletop.io！',
-    'welcome.platform': '你可以直接在浏览器中与家人和朋友一起玩桌游，无需注册账号。',
     'welcome.roomUrl': '房间链接：',
     'welcome.playerName': '玩家名称：',
     'welcome.createRoom': '创建房间',
@@ -198,7 +206,7 @@ const VTT_I18N_MESSAGES = {
     'welcome.emptyRoom': '创建空房间',
     'welcome.joining': '正在加入房间…',
     'welcome.adding': '正在添加游戏…',
-    'welcome.userGenerated': '此游戏为用户生成内容，VirtualTabletop.io 不对其内容承担责任。'
+    'about.title': '关于 VirtualTabletop.io'
   }
 };
 
@@ -232,7 +240,6 @@ const VTT_ZH_GAME_TRANSLATIONS = {
 const VTT_I18N_STATIC_BINDINGS = [
   [ '#statesButton .tooltip', 'textContent', 'toolbar.gameShelf' ],
   [ '#activeGameButton .tooltip', 'textContent', 'toolbar.activeGame' ],
-  [ '#playersButton .tooltip', 'textContent', 'toolbar.players' ],
   [ '#aboutButton .tooltip', 'textContent', 'toolbar.about' ],
   [ '#editButton .tooltip', 'textContent', 'toolbar.editMode' ],
   [ '#optionsButton .tooltip', 'textContent', 'toolbar.sound' ],
@@ -242,7 +249,11 @@ const VTT_I18N_STATIC_BINDINGS = [
   [ '#showToolbarButton', 'title', 'toolbar.show' ],
   [ '#showToolbarButton', 'aria-label', 'toolbar.show' ],
   [ '#loadingRoomIndicator', 'textContent', 'room.loading' ],
+  [ '#askIDoverlay p', 'textContent', 'room.askID' ],
   [ '#askIDoverlay button', 'textContent', 'room.play' ],
+  [ '#buttonInputOverlay h1', 'textContent', 'input.button' ],
+  [ '#inputBlockOverlay h1', 'textContent', 'input.waiting' ],
+  [ '#inputBlockGuidance', 'textContent', 'input.waitingHint' ],
   [ '#inputBlockCancel label', 'textContent', 'common.cancel' ],
   [ '#playerOverlay .heading h1', 'textContent', 'players.title' ],
   [ '#playersTable thead th:nth-child(2)', 'textContent', 'players.player' ],
@@ -257,6 +268,8 @@ const VTT_I18N_STATIC_BINDINGS = [
   [ '#filterByText', 'placeholder', 'library.searchPlaceholder' ],
   [ '#filterByPlayers option:first-child', 'textContent', 'common.any' ],
   [ '#filterByDuration option:first-child', 'textContent', 'common.any' ],
+  [ '#filterByLanguage option:first-child', 'textContent', 'common.any' ],
+  [ '#filterByMode option:first-child', 'textContent', 'common.any' ],
   [ '#filterByAi option:first-child', 'textContent', 'common.any' ],
   [ '#filterByAi option[value="no-ai"]', 'textContent', 'library.noAi' ],
   [ '#filterByAi option[value="ai"]', 'textContent', 'library.usesAi' ],
@@ -278,11 +291,16 @@ const VTT_I18N_STATIC_BINDINGS = [
   [ '#stateSaveOverlay h1', 'textContent', 'saveGame.title' ],
   [ '#stateSaveOverlay button[icon="undo"]', 'textContent', 'common.cancel' ],
   [ '#stateSaveOverlay button[icon="save"]', 'textContent', 'saveGame.button' ],
+  [ '#helpTexts h3[data-showfor="importerWarnings"]', 'textContent', 'library.importNotes' ],
+  [ '#helpTexts h3[data-showfor="ruleText"]', 'textContent', 'library.howToPlay' ],
+  [ '#helpTexts h3[data-showfor="helpText"]', 'textContent', 'library.howToUse' ],
+  [ '#helpTexts h3[data-showfor="attribution"]', 'textContent', 'library.attribution' ],
   [ '#shareLinkOverlay h1', 'textContent', 'share.title' ],
   [ '#shareLinkOverlay .plGameInfo', 'textContent', 'share.publicInfo' ],
   [ '#shareLinkOverlay button[icon="share"]', 'textContent', 'common.share' ],
   [ '#welcomePlayButton', 'textContent', 'welcome.createRoom' ],
-  [ '#linkDetailsOverlay .ai-imagery-notice span', 'textContent', 'library.aiNotice' ]
+  [ '#linkDetailsOverlay .ai-imagery-notice span', 'textContent', 'library.aiNotice' ],
+  [ '#aboutOverlay .about_title h1', 'textContent', 'about.title' ]
 ];
 
 const VTT_I18N_ORIGINAL_VALUES = new WeakMap();
@@ -290,6 +308,7 @@ let vttI18nLocale = resolveInitialLocale();
 let vttI18nStates = null;
 let vttI18nWelcomeState = null;
 let vttI18nRefreshQueued = false;
+let vttI18nNeedsLibraryUpdate = false;
 
 export function normalizeLocale(locale) {
   const value = String(locale || '').trim();
@@ -399,6 +418,7 @@ function translateInlineLabels() {
     return;
 
   const textMappings = vttI18nLocale == 'zh-CN' ? {
+    'Similar to:': t('library.similarPrefix'),
     'Time:': t('library.time'),
     'minutes': t('library.minutes'),
     'Mode:': t('library.mode'),
@@ -407,7 +427,7 @@ function translateInlineLabels() {
     'Player name:': t('welcome.playerName')
   } : {};
 
-  for(const root of [ document.querySelector('#mainDetails .details'), document.querySelector('#linkDetailsOverlay .details'), document.querySelector('#linkDetailsOverlay .welcomeInput') ]) {
+  for(const root of [ document.querySelector('#mainDetails .details'), document.querySelector('#similarDetails .details'), document.querySelector('#linkDetailsOverlay .details'), document.querySelector('#linkDetailsOverlay .welcomeInput') ]) {
     if(!root)
       continue;
     const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
@@ -424,8 +444,7 @@ function translateInlineLabels() {
       } else if(textMappings[trimmed]) {
         const leading = node.nodeValue.match(/^\s*/)[0];
         const trailing = node.nodeValue.match(/\s*$/)[0];
-        const translated = textMappings[trimmed];
-        const next = leading + translated + trailing;
+        const next = leading + textMappings[trimmed] + trailing;
         if(node.nodeValue != next)
           node.nodeValue = next;
       }
@@ -481,7 +500,7 @@ function translateGeneratedCategories() {
     'Tutorials': 'library.tutorials'
   };
 
-  for(const node of document.querySelectorAll('#statesList h2.title, .libraryTypeTabs button')) {
+  for(const node of document.querySelectorAll('#statesList h2.title, .libraryTypeTabs button, #filterByType option')) {
     if(!node.dataset.i18nCanonical)
       node.dataset.i18nCanonical = node.textContent.trim();
     const canonical = node.dataset.i18nCanonical;
@@ -495,8 +514,9 @@ function translateGeneratedCategories() {
 function translateGeneratedPlayerText() {
   if(typeof document == 'undefined')
     return;
+
   for(const label of document.querySelectorAll('#playersTable .sessionLabel')) {
-    if(!label.dataset.i18nCanonical)
+    if(!label.dataset.i18nCanonical || /^Connection [0-9]+/.test(label.textContent) || [ 'connected', 'not connected' ].includes(label.textContent))
       label.dataset.i18nCanonical = label.textContent;
     const canonical = label.dataset.i18nCanonical;
     let next = canonical;
@@ -517,10 +537,30 @@ function translateGeneratedPlayerText() {
 
   const playerTooltip = document.querySelector('#playersButton .tooltip');
   if(playerTooltip) {
-    const match = playerTooltip.textContent.match(/^Players: ([0-9]+)$/);
-    if(match)
-      playerTooltip.textContent = vttI18nLocale == 'en' ? `Players: ${match[1]}` : t('toolbar.playersCount', { count: match[1] });
+    const englishCount = playerTooltip.textContent.match(/^Players: ([0-9]+)$/);
+    if(englishCount)
+      playerTooltip.dataset.i18nCount = englishCount[1];
+    const count = playerTooltip.dataset.i18nCount;
+    const next = count ? (vttI18nLocale == 'en' ? `Players: ${count}` : t('toolbar.playersCount', { count })) : t('toolbar.players');
+    if(playerTooltip.textContent != next)
+      playerTooltip.textContent = next;
   }
+
+  for(const row of document.querySelectorAll('#playersTable tbody tr')) {
+    const rename = row.querySelector('.renamePlayer');
+    const view = row.querySelector('.viewPlayer');
+    const remove = row.querySelector('.removePlayer');
+    if(rename)
+      setBoundValue(rename, 'title', t('players.renameTitle'));
+    if(view && !view.classList.contains('unavailable'))
+      setBoundValue(view, 'title', t('players.viewTitle'));
+    if(remove && !remove.title.startsWith('Remove ') || remove && remove.title == VTT_I18N_MESSAGES.en['players.removeTitle'])
+      setBoundValue(remove, 'title', t('players.removeTitle'));
+  }
+
+  const addButton = document.querySelector('#addLocalPlayerButton');
+  if(addButton && vttI18nLocale != 'en' && addButton.title == VTT_I18N_MESSAGES.en['players.addSwitchTitle'])
+    addButton.title = t('players.addSwitchTitle');
 
   const inviteStatus = document.querySelector('#playerInviteStatus');
   if(inviteStatus && vttI18nLocale != 'en') {
@@ -542,7 +582,7 @@ function refreshLocalizedGameDOM() {
         continue;
       const display = localizeGameMeta(state);
       const title = entry.querySelector('h3');
-      if(title && title.textContent != display.name)
+      if(title && title.textContent != (display.name || ''))
         title.textContent = display.name || '';
 
       const subtitle = entry.querySelector('h4');
@@ -560,17 +600,26 @@ function refreshLocalizedGameDOM() {
     }
 
     const details = document.querySelector('#stateDetailsOverlay');
-    if(details && !details.classList.contains('editing')) {
+    if(details) {
       const state = vttI18nStates[details.dataset.id];
       if(state) {
-        const display = localizeGameMeta(state);
+        // Editing always exposes the canonical metadata. This is essential: a Chinese display
+        // translation must never be saved back as the game's real name or description merely
+        // because the user opened the metadata editor while the UI language was Chinese.
+        const display = details.classList.contains('editing') ? state : localizeGameMeta(state);
         const name = details.querySelector('#mainDetails [data-field="name"]');
         const description = details.querySelector('#mainDetails [data-field="description"]');
+        const similarName = details.querySelector('#similarDetails [data-field="similarName"]');
         if(name && name.textContent != (display.name || ''))
           name.textContent = display.name || '';
         if(description && description.textContent != (display.description || ''))
           description.textContent = display.description || '';
+        if(similarName && similarName.textContent != (display.similarName || ''))
+          similarName.textContent = display.similarName || '';
       }
+
+      for(const button of details.querySelectorAll('.variant [icon="play_arrow"]'))
+        setBoundValue(button, 'textContent', t('library.play'));
     }
   }
 
@@ -590,6 +639,21 @@ function refreshLocalizedGameDOM() {
       document.title = `${display.name} - ${tabSuffix}`;
     }
   }
+}
+
+function updateLocalizedLibraryBehavior() {
+  if(!vttI18nNeedsLibraryUpdate)
+    return;
+  vttI18nNeedsLibraryUpdate = false;
+
+  if(typeof resortStatesList == 'function')
+    resortStatesList();
+  if(typeof updateLibraryFilter == 'function')
+    updateLibraryFilter();
+
+  // updateLibraryFilter() owns the canonical English empty-state copy, so reapply the
+  // presentation translation after it has recomputed the visibility hints.
+  translateStaticBindings();
 }
 
 export function setI18nWelcomeState(state) {
@@ -617,6 +681,7 @@ export function applyUITranslations() {
   translateGeneratedPlayerText();
   refreshLocalizedGameDOM();
   translateInlineLabels();
+  updateLocalizedLibraryBehavior();
 }
 
 export function setLocale(locale) {
@@ -626,6 +691,7 @@ export function setLocale(locale) {
     return;
   }
   vttI18nLocale = next;
+  vttI18nNeedsLibraryUpdate = true;
   try {
     if(typeof localStorage != 'undefined')
       localStorage.setItem(VTT_I18N_STORAGE_KEY, next);
@@ -642,14 +708,21 @@ if(typeof window != 'undefined' && typeof onLoad != 'undefined') {
     if(typeof onMessage != 'undefined') {
       onMessage('meta', function(args) {
         vttI18nStates = args && args.meta && args.meta.states || null;
+        vttI18nNeedsLibraryUpdate = true;
         queueI18nRefresh();
       });
     }
 
     for(const selector of [ '#statesList', '#stateDetailsOverlay', '#playerOverlay', '#linkDetailsOverlay' ]) {
       const root = document.querySelector(selector);
-      if(root)
-        new MutationObserver(queueI18nRefresh).observe(root, { childList: true, subtree: true, characterData: true, attributes: selector == '#stateDetailsOverlay', attributeFilter: selector == '#stateDetailsOverlay' ? [ 'class', 'data-id' ] : undefined });
+      if(!root)
+        continue;
+      const options = { childList: true, subtree: true, characterData: true };
+      if(selector == '#stateDetailsOverlay') {
+        options.attributes = true;
+        options.attributeFilter = [ 'class', 'data-id' ];
+      }
+      new MutationObserver(queueI18nRefresh).observe(root, options);
     }
 
     window.addEventListener('vtt-languagechange', queueI18nRefresh);
