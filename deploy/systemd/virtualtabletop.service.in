@@ -1,0 +1,18 @@
+[Unit]
+Description=VirtualTabletop server
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=simple
+User=@VTT_USER@
+Group=@VTT_GROUP@
+WorkingDirectory=@VTT_REPO_DIR@
+Environment="HOME=@VTT_HOME@"
+Environment="VTT_SAVE_DIR=@VTT_DATA_DIR@/save"
+ExecStart=@NODE_BIN@ server.mjs
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
