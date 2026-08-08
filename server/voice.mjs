@@ -107,7 +107,8 @@ class VoiceRoomManager {
   }
 
   enabled() {
-    return this.settings().enabled === true;
+    const enabled = Config.get('voiceEnabled');
+    return enabled !== false && enabled !== 'false';
   }
 
   p2pMaxParticipants() {
