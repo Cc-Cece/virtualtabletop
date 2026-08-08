@@ -250,11 +250,13 @@ class VoiceRoomManager {
       return this.sendInviteStatus(player.name, targetPlayer, 'joined');
 
     const existing = this.pendingInviteForTarget(targetPlayer);
-    if(existing)
-      return this.sendInviteStatus(player.name, targetPlayer, 'pending', {
-        inviteID: existing.inviteID,
+    if(existing) {
+      const status = existing.fromPlayer === player.name ? 'pending' : 'busy';
+      return this.sendInviteStatus(player.name, targetPlayer, status, {
+        ...(status == 'pending' ? { inviteID: existing.inviteID } : {}),
         expiresAt: existing.expiresAt
       });
+    }
 
     const now = Date.now();
     const pairKey = `${player.name}\u0000${targetPlayer}`;
@@ -368,9 +370,13 @@ class VoiceRoomManager {
   }
 
   handle(player, func, args) {
-    if(!this.enabled() && this.participants.size) {
-      this.participants.clear();
-      this.qualityFallback = false;
+    if(!this.enabled()) {
+      if(this.participants.size) {
+        this.participants.clear();
+        this.qualityFallback = false;
+      }
+      for(const invite of [ ...this.pendingInvites.values() ])
+        this.finishInvite(invite, 'cancelled');
     }
     if(func == 'voiceStateRequest')
       return this.sendState(player);
