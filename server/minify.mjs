@@ -89,6 +89,7 @@ export default async function minifyHTML() {
     'client/js/domhelpers.js',
     'client/js/calculateLayout.js',
     'client/js/connection.js',
+    'client/js/i18n.js',
     'client/js/serverstate.js',
     'client/js/legacymodes.js',
     'client/js/geometry.js',
@@ -103,6 +104,7 @@ export default async function minifyHTML() {
 
     'client/js/overlays/players.js',
     'client/js/overlays/states.js',
+    'client/js/i18n-search.js',
     'client/js/overlays/welcome.js',
 
     'client/js/widgets/widget.js',
