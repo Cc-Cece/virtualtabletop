@@ -1,0 +1,137 @@
+.voiceInviteRosterSlot {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 8px;
+  vertical-align: middle;
+}
+
+.voiceInviteAction,
+.voiceInviteInVoice {
+  position: relative;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.voiceInviteAction {
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  background: rgba(255, 255, 255, 0.08);
+  color: inherit;
+  cursor: pointer;
+}
+
+.voiceInviteAction:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.16);
+}
+
+.voiceInviteAction:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.voiceInviteAction .material-symbols,
+.voiceInviteInVoice .material-symbols {
+  font-size: 18px;
+}
+
+.voiceInvitePlus {
+  position: absolute;
+  right: 2px;
+  bottom: 0;
+  font-size: 14px;
+  line-height: 1;
+  font-weight: 700;
+}
+
+.voiceInviteInVoice {
+  color: #54d7b7;
+}
+
+.voiceInvitePrompt {
+  position: fixed;
+  z-index: 100000;
+  top: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  min-width: min(440px, calc(100vw - 32px));
+  max-width: min(560px, calc(100vw - 32px));
+  box-sizing: border-box;
+  padding: 16px;
+  border-radius: 14px;
+  background: rgba(24, 27, 31, 0.97);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.38);
+  color: white;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 14px;
+  align-items: center;
+}
+
+.voiceInvitePrompt.voiceInviteHidden {
+  display: none;
+}
+
+.voiceInvitePromptIcon {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(84, 215, 183, 0.18);
+  color: #54d7b7;
+}
+
+.voiceInvitePromptIcon .material-symbols {
+  font-size: 26px;
+}
+
+.voiceInvitePromptBody {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.voiceInvitePromptBody strong {
+  font-size: 16px;
+}
+
+.voiceInvitePromptBody span {
+  opacity: 0.8;
+  font-size: 13px;
+}
+
+.voiceInvitePromptActions {
+  display: flex;
+  gap: 8px;
+}
+
+.voiceInvitePromptActions button {
+  min-height: 36px;
+  padding: 0 14px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.08);
+  color: white;
+  cursor: pointer;
+}
+
+.voiceInvitePromptActions button.primary {
+  background: #2a9d82;
+  border-color: #2a9d82;
+}
+
+@media (max-width: 620px) {
+  .voiceInvitePrompt {
+    grid-template-columns: auto 1fr;
+  }
+
+  .voiceInvitePromptActions {
+    grid-column: 1 / -1;
+    justify-content: flex-end;
+  }
+}
