@@ -1,6 +1,6 @@
 # Realtime voice (MVP)
 
-VirtualTabletop voice is deliberately separate from game-state synchronization. Games opt in with `_meta.gameSettings.voice`; the browser then keeps audio in WebRTC while the existing VTT WebSocket carries only room-scoped signaling and control messages.
+VirtualTabletop voice is deliberately separate from game-state synchronization. Voice availability is controlled by the VTT server rather than by individual game packages; the browser keeps audio in WebRTC while the existing VTT WebSocket carries only room-scoped signaling and control messages.
 
 ## Routing policy
 
@@ -13,21 +13,22 @@ The default route is automatic:
 
 A game can identify a host seat with `voice.hostSeat`. That seated player can select Auto, P2P preferred, or Stable (SFU). P2P preferred still falls back to SFU after measured degradation; voice quality takes priority over server-bandwidth savings.
 
-## Game opt-in
+## Server-wide availability
 
-Example game settings:
+Voice is enabled server-wide by default with `voiceEnabled: true`. Every room exposes the Voice UI regardless of whether its game package declares `_meta.gameSettings.voice`, and a package-level `voice.enabled` value is not used as an availability gate.
+
+Game packages may still provide optional voice tuning such as `hostSeat` or `p2pMaxParticipants`:
 
 ```json
 {
   "voice": {
-    "enabled": true,
     "hostSeat": "seat-1",
     "p2pMaxParticipants": 4
   }
 }
 ```
 
-Games that do not set `voice.enabled` to `true` do not show the voice UI.
+Set `voiceEnabled` to `false` in `config.json` to disable voice for the whole VTT deployment.
 
 ## HTTPS requirement
 
@@ -39,6 +40,7 @@ The VTT Node process can continue to listen on plain HTTP behind a reverse proxy
 
 The following non-secret settings are available in `config.json` (defaults are shown in `config.template.json`):
 
+- `voiceEnabled`: global server-side voice switch. It defaults to `true`, so all rooms show voice controls without requiring game-package opt-in.
 - `voiceLiveKitURL`: public LiveKit WebSocket URL, for example `wss://livekit.example.com`. The standard `LIVEKIT_URL` environment variable overrides it.
 - `voiceLiveKitClientURL`: browser UMD build of `livekit-client`. The default is pinned to 2.21.0 on jsDelivr. For a fully self-hosted deployment, mirror that exact file and point this setting at the local URL.
 - `voiceP2PMaxParticipants`: server fallback default when the game does not set its own value.
