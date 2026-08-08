@@ -94,9 +94,48 @@ function log(str) {
   toServer('trace', str);
 }
 
-// Voice is implemented as a separately loaded browser module so the core VTT bundle does not
-// depend on WebRTC or LiveKit. This bridge deliberately exposes only the existing message bus.
-// No game state or private widget data is made available to the voice module.
+function clientActivityIndicators() {
+  const indicators = [];
+  for(const widget of widgets.values()) {
+    const config = widget.get('clientActivityIndicator');
+    if(!config || typeof config != 'object' || Array.isArray(config))
+      continue;
+    const source = typeof config.source == 'string' ? config.source.trim() : '';
+    const playerWidgetID = typeof config.playerWidget == 'string' ? config.playerWidget.trim() : '';
+    const playerWidget = playerWidgetID ? widgets.get(playerWidgetID) : null;
+    indicators.push({
+      id: widget.id,
+      source,
+      playerWidget: playerWidgetID,
+      player: playerWidget && typeof playerWidget.get('player') == 'string' ? playerWidget.get('player') : ''
+    });
+  }
+  return indicators;
+}
+
+function setClientActivityIndicator(id, active) {
+  const widget = widgets.get(id);
+  if(!widget)
+    return;
+  widget.domElement.dataset.vttClientActivityIndicator = 'true';
+  widget.domElement.dataset.vttClientActivityActive = active ? 'true' : 'false';
+}
+
+function loadClientModule(id, path, description) {
+  if(document.getElementById(id))
+    return;
+  const module = document.createElement('script');
+  module.id = id;
+  module.type = 'module';
+  module.src = new URL(path, document.baseURI).href;
+  module.onerror = error=>console.error(`Could not load ${description}.`, error);
+  document.head.appendChild(module);
+}
+
+// Voice is implemented as separately loaded browser modules so the core VTT bundle does not
+// depend on WebRTC or LiveKit. The voice bridge deliberately exposes only the existing message
+// bus. A second narrow bridge lets generic client-only activity indicators resolve their declared
+// player widget and toggle only the indicator DOM node; it does not expose arbitrary game state.
 if(typeof window != 'undefined') {
   window.vttVoiceTransport = {
     onMessage,
@@ -104,14 +143,14 @@ if(typeof window != 'undefined') {
     lastMessage: func=>lastMessages[func],
     isOpen: ()=>connection?.readyState === WebSocket.OPEN
   };
-  if(!document.getElementById('voiceModule')) {
-    const voiceModule = document.createElement('script');
-    voiceModule.id = 'voiceModule';
-    voiceModule.type = 'module';
-    voiceModule.src = new URL('js/voice.js', document.baseURI).href;
-    voiceModule.onerror = error=>console.error('Could not load voice module.', error);
-    document.head.appendChild(voiceModule);
-  }
+  window.vttClientActivityTransport = {
+    indicators: clientActivityIndicators,
+    setIndicatorActive: setClientActivityIndicator
+  };
+
+  loadClientModule('clientActivityModule', 'js/clientActivity.js', 'client activity module');
+  loadClientModule('voiceModule', 'js/voice.js', 'voice module');
+  loadClientModule('voiceSpeakingActivityModule', 'js/voiceSpeakingActivity.js', 'voice speaking activity adapter');
 }
 
 window.onbeforeunload = function() {
