@@ -1,0 +1,69 @@
+.voiceRestoreToast {
+  position: fixed;
+  z-index: 100001;
+  right: 22px;
+  bottom: 22px;
+  max-width: min(420px, calc(100vw - 32px));
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 12px;
+  align-items: center;
+  padding: 14px 16px;
+  border-radius: 12px;
+  background: rgba(24, 27, 31, 0.97);
+  color: white;
+  box-shadow: 0 10px 32px rgba(0, 0, 0, 0.34);
+}
+
+.voiceRestoreToast.voiceRestoreToastHidden {
+  display: none;
+}
+
+.voiceRestoreToast > .material-symbols {
+  color: #54d7b7;
+  font-size: 24px;
+}
+
+.voiceRestoreToastText {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.voiceRestoreToastText strong {
+  font-size: 14px;
+}
+
+.voiceRestoreToastText span {
+  font-size: 12px;
+  opacity: 0.78;
+}
+
+.voiceRestoreToast button {
+  min-height: 34px;
+  padding: 0 12px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.08);
+  color: white;
+  cursor: pointer;
+}
+
+.voiceRestoreToast button:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+@media (max-width: 620px) {
+  .voiceRestoreToast {
+    left: 16px;
+    right: 16px;
+    bottom: 16px;
+    grid-template-columns: auto 1fr;
+  }
+
+  .voiceRestoreToast button {
+    grid-column: 1 / -1;
+    justify-self: end;
+  }
+}
