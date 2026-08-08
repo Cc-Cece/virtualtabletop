@@ -112,7 +112,7 @@ if(!transport) {
     state.currentSessionID = Number(serverState.selfSessionID) || state.currentSessionID;
 
     const joinedPlayers = new Set((serverState.participants || []).map(p=>p.player));
-    for(const [ target, invite ] of state.outbound)
+    for(const [ target ] of state.outbound)
       if(joinedPlayers.has(target))
         state.outbound.delete(target);
 
@@ -148,7 +148,7 @@ if(!transport) {
       return;
     const target = args.targetPlayer;
     const status = args.status;
-    if([ 'sent', 'pending', 'requesting', 'cooldown', 'accepted' ].includes(status)) {
+    if([ 'sent', 'pending', 'requesting', 'cooldown', 'accepted', 'busy' ].includes(status)) {
       state.outbound.set(target, {
         status,
         inviteID: args.inviteID || '',
@@ -261,9 +261,14 @@ if(!transport) {
       if(pending) {
         button.disabled = true;
         button.classList.add('pending');
-        button.title = pending.status == 'accepted'
-          ? `${targetPlayer} accepted and is joining voice…`
-          : `Voice invitation sent to ${targetPlayer}`;
+        if(pending.status == 'accepted')
+          button.title = `${targetPlayer} accepted and is joining voice…`;
+        else if(pending.status == 'busy')
+          button.title = `${targetPlayer} already has a pending voice invitation`;
+        else if(pending.status == 'cooldown')
+          button.title = `Please wait before inviting ${targetPlayer} again`;
+        else
+          button.title = `Voice invitation sent to ${targetPlayer}`;
       } else {
         button.title = `Invite ${targetPlayer} to voice`;
         button.setAttribute('aria-label', button.title);
