@@ -75,6 +75,30 @@ The voice module is loaded separately from the main bundled client and adds a Vo
 
 Opening or failing voice does not affect cards, room state, or the main VTT WebSocket connection.
 
+## Persistent voice membership and preferences
+
+Joining voice creates a room-scoped local preference in the browser. That preference remains across page refreshes, browser crashes, browser restarts, computer shutdowns, and later visits to the same room. Returning to the room automatically reuses the normal Join Voice flow. Only an explicit **Leave voice** action clears the saved membership intent.
+
+A failed automatic reconnect does not clear that intent. The browser keeps it and shows a lightweight reconnect action instead. A successful automatic reconnect shows a short non-blocking notification with a **Leave voice** action so the user is aware that voice was restored without adding another mode or confirmation step.
+
+The same room-scoped browser preference also remembers:
+
+- whether the user's own microphone was muted;
+- the selected microphone device when that device is still available;
+- which remote players the user muted locally.
+
+Muting the microphone does not revoke browser microphone permission; it continues to use the normal voice track and can be unmuted immediately. Muting another player is local only and does not affect what anyone else hears. Remote mute preferences are stored by player name rather than connection/session ID so they survive reconnects and device changes.
+
+These preferences live only in browser `localStorage`. They are not written into room state, save files, undo history, traces, or the server database. Preferences are keyed by the VTT room path so joining voice in one room does not opt the user into another room.
+
+### Reconnect presence grace
+
+A page refresh normally destroys the browser's WebRTC/LiveKit objects and creates a new VTT session. To prevent other room members from seeing a rapid leave/rejoin flicker, the server keeps a disconnected voice participant visible for an 8-second grace period without keeping that stale connection in the active P2P/SFU participant set.
+
+If the same player rejoins voice during that grace period, the old visible session is replaced by the new one and no intermediate leave presence is broadcast. If the player does not return within 8 seconds, the temporary presence expires and the room receives the normal updated voice participant list. Explicit **Leave voice** bypasses the grace period and is broadcast immediately.
+
+The grace period is only short-lived server memory. It does not attempt to keep a user visibly online overnight or across a long power outage; long-term return behavior comes from the browser's persistent voice membership preference.
+
 ## Voice invitations
 
 Voice invitations are a VTT room capability, not a game-package feature. A user who has already joined voice can invite another currently connected room player from the existing Players overlay. Players already in voice are shown with a microphone status instead of an invite action.
