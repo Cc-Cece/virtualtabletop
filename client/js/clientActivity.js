@@ -31,6 +31,7 @@ function installStyles() {
     [data-vtt-client-activity-indicator="true"][data-vtt-client-activity-active="false"] {
       display: none !important;
     }
+    body:not(.edit) .widget.hidden[data-vtt-client-activity-indicator="true"][data-vtt-client-activity-active="true"],
     [data-vtt-client-activity-indicator="true"][data-vtt-client-activity-active="true"] {
       display: block !important;
     }
