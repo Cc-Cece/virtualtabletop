@@ -80,6 +80,16 @@ describe('client i18n', () => {
     expect(i18nSource).not.toContain("toServer('");
   });
 
+  test('restores canonical game metadata while editing', () => {
+    expect(i18nSource).toContain("details.classList.contains('editing') ? state : localizeGameMeta(state)");
+  });
+
+  test('reapplies filtering and sorting after localized metadata changes', () => {
+    expect(i18nSource).toContain("typeof resortStatesList == 'function'");
+    expect(i18nSource).toContain("typeof updateLibraryFilter == 'function'");
+    expect(i18nSource).toContain('vttI18nNeedsLibraryUpdate = true;');
+  });
+
   test('localizes the shared-game welcome path using the same metadata resolver', () => {
     expect(welcomeSource).toContain('setI18nWelcomeState(state);');
     expect(welcomeSource).toContain('const displayState = localizeGameMeta(state);');
