@@ -21,7 +21,7 @@ if [[ ${EUID:-$(id -u)} -eq 0 ]]; then
   fail "Run this installer as the deployment user, not as root. It will use sudo for system files."
 fi
 
-for command in git sudo systemctl; do
+for command in git sudo systemctl timeout; do
   command -v "$command" >/dev/null 2>&1 || fail "$command is not available."
 done
 [[ -d "$REPO_DIR/.git" ]] || fail "$REPO_DIR is not a Git working tree."
@@ -45,9 +45,19 @@ DEPLOY_USER="$(id -un)"
 DEPLOY_GROUP="$(id -gn)"
 DEPLOY_HOME="$HOME"
 
-log "Installing npm dependencies"
 cd "$REPO_DIR"
-npm ci
+if [[ -d "$REPO_DIR/node_modules" ]]; then
+  log "node_modules already exists; skipping npm ci"
+else
+  log "Installing npm dependencies (maximum 120 seconds)"
+  set +e
+  timeout --signal=KILL 120s npm ci
+  npm_status=$?
+  set -e
+  if [[ $npm_status -ne 0 ]]; then
+    printf '\nWARNING: npm ci did not complete successfully within the install window (exit %s); continuing deployment.\n' "$npm_status" >&2
+  fi
+fi
 
 log "Creating external runtime data at $DATA_DIR"
 mkdir -p \
