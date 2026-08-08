@@ -1,0 +1,12 @@
+[Unit]
+Description=Update VirtualTabletop from GitHub main
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=@VTT_USER@
+Group=@VTT_GROUP@
+WorkingDirectory=@VTT_REPO_DIR@
+Environment="HOME=@VTT_HOME@"
+ExecStart=/bin/bash @VTT_REPO_DIR@/deploy/update-vtt.sh
