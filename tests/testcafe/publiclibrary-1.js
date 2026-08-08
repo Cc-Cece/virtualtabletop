@@ -1,7 +1,33 @@
+import { Selector } from 'testcafe';
+
 import { publicLibraryButtons } from './publiclibrary-util.js';
 import { setupTestEnvironment } from './test-util.js';
 
 setupTestEnvironment();
+
+test('Switches the player UI to Simplified Chinese without breaking English game search', async t => {
+  const loadingIndicator = Selector('#loadingRoomIndicator');
+  const languageSelect = Selector('#languageSelect');
+  const mancalaTile = Selector('#statesList .roomState').withAttribute('data-name', '播棋（Mancala）');
+
+  await t
+    .expect(loadingIndicator.exists).notOk()
+    .click('#aboutButton')
+    .expect(languageSelect.exists).ok()
+    .click(languageSelect)
+    .click(languageSelect.find('option').withAttribute('value', 'zh-CN'))
+    .expect(Selector('html').getAttribute('lang')).eql('zh-CN')
+    .expect(Selector('#statesButton .tooltip').innerText).eql('游戏架')
+    .click('#statesButton')
+    .expect(Selector('#filterByText').getAttribute('placeholder')).eql('搜索游戏')
+    .expect(mancalaTile.exists).ok()
+    .typeText('#filterByText', 'Mancala', { replace: true })
+    .expect(mancalaTile.visible).ok()
+    .click('#aboutButton')
+    .click(languageSelect)
+    .click(languageSelect.find('option').withAttribute('value', 'en'))
+    .expect(Selector('html').getAttribute('lang')).eql('en');
+});
 
 publicLibraryButtons('Blue',               0, 'baa6af876f53f1df1741147b38f425c0', ["player1Seat","player2Seat","player3Seat","player4Seat",
   'Deal_button', 'e36b',
