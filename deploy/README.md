@@ -20,13 +20,15 @@ VTT_DATA_DIR=/srv/virtualtabletop-data bash deploy/install-server.sh
 
 The installer:
 
-- runs `npm ci`;
+- skips `npm ci` when `node_modules` already exists; otherwise it gives `npm ci` at most 120 seconds and continues with a warning if it times out or fails;
 - creates external `save` and `library` data directories;
 - seeds an empty external library once from the repository's bundled `library`;
 - writes the Git-ignored local `config.json` so `library` points outside the checkout;
 - sets `VTT_SAVE_DIR` in the systemd service so rooms, states, and uploaded assets stay outside the checkout;
 - installs and starts `virtualtabletop.service`;
 - installs a timer that checks `origin/main` every five minutes.
+
+The final systemd service health check remains authoritative: if dependencies are incomplete and VTT cannot start, installation fails there instead of hanging indefinitely in `npm ci`.
 
 ## Updates
 
