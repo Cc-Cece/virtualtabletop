@@ -12,6 +12,7 @@
   "allowPublicLibraryEdits": false,
   "adminURL": null,
 
+  "voiceEnabled": true,
   "voiceLiveKitURL": "wss://livekit.vtt.insar.top",
   "voiceLiveKitClientURL": "https://cdn.jsdelivr.net/npm/livekit-client@2.21.0/dist/livekit-client.umd.min.js",
   "voiceP2PMaxParticipants": 4,
