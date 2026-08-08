@@ -4,6 +4,9 @@ import Config from './config.mjs';
 
 const managers = new WeakMap();
 const VOICE_MODES = new Set([ 'auto', 'p2p', 'sfu' ]);
+const VOICE_INVITE_TTL_MS = 30000;
+const VOICE_INVITE_PAIR_COOLDOWN_MS = 10000;
+const VOICE_INVITE_GLOBAL_COOLDOWN_MS = 1000;
 
 function base64url(value) {
   return Buffer.from(value).toString('base64').replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_');
@@ -91,6 +94,9 @@ class VoiceRoomManager {
     this.participants = new Set();
     this.modeOverride = 'auto';
     this.qualityFallback = false;
+    this.pendingInvites = new Map();
+    this.lastInviteBySession = new Map();
+    this.lastInviteByPair = new Map();
   }
 
   settings() {
@@ -166,11 +172,53 @@ class VoiceRoomManager {
         this.sendState(player);
   }
 
+  playersNamed(name) {
+    return this.room.players.filter(player=>player.name === name);
+  }
+
+  playerNameInVoice(name) {
+    return [ ...this.participants ].some(player=>player.name === name);
+  }
+
+  sendToPlayerName(name, func, args) {
+    for(const player of this.playersNamed(name))
+      player.send(func, args);
+  }
+
+  sendInviteStatus(inviterName, targetPlayer, status, extra = {}) {
+    this.sendToPlayerName(inviterName, 'voiceInviteStatus', { targetPlayer, status, ...extra });
+  }
+
+  pendingInviteForTarget(targetPlayer) {
+    return [ ...this.pendingInvites.values() ].find(invite=>invite.targetPlayer === targetPlayer) || null;
+  }
+
+  finishInvite(invite, status) {
+    if(!invite || !this.pendingInvites.has(invite.inviteID))
+      return;
+    clearTimeout(invite.timer);
+    this.pendingInvites.delete(invite.inviteID);
+    this.sendToPlayerName(invite.targetPlayer, 'voiceInviteResolved', {
+      inviteID: invite.inviteID,
+      status
+    });
+    this.sendInviteStatus(invite.fromPlayer, invite.targetPlayer, status, {
+      inviteID: invite.inviteID
+    });
+  }
+
+  resolveInvitesForTarget(targetPlayer, status) {
+    for(const invite of [ ...this.pendingInvites.values() ])
+      if(invite.targetPlayer === targetPlayer)
+        this.finishInvite(invite, status);
+  }
+
   join(player) {
     if(!this.enabled()) {
       this.sendState(player);
       return;
     }
+    this.resolveInvitesForTarget(player.name, 'joined');
     this.participants.add(player);
     this.broadcastState();
   }
@@ -183,6 +231,73 @@ class VoiceRoomManager {
       this.broadcastState(disconnecting ? player : null);
     else if(!disconnecting)
       this.sendState(player);
+  }
+
+  invite(player, args) {
+    if(!this.enabled())
+      return player.send('voiceError', 'Voice is disabled for this game.');
+    if(!this.participants.has(player))
+      return player.send('voiceError', 'Join voice before inviting another player.');
+
+    const targetPlayer = typeof args?.targetPlayer == 'string' ? args.targetPlayer.trim().slice(0, 256) : '';
+    if(!targetPlayer || targetPlayer === player.name)
+      return player.send('voiceError', 'Invalid voice invitation target.');
+
+    const targets = this.playersNamed(targetPlayer);
+    if(!targets.length)
+      return this.sendInviteStatus(player.name, targetPlayer, 'unavailable');
+    if(this.playerNameInVoice(targetPlayer))
+      return this.sendInviteStatus(player.name, targetPlayer, 'joined');
+
+    const existing = this.pendingInviteForTarget(targetPlayer);
+    if(existing) {
+      const status = existing.fromPlayer === player.name ? 'pending' : 'busy';
+      return this.sendInviteStatus(player.name, targetPlayer, status, {
+        ...(status == 'pending' ? { inviteID: existing.inviteID } : {}),
+        expiresAt: existing.expiresAt
+      });
+    }
+
+    const now = Date.now();
+    const pairKey = `${player.name}\u0000${targetPlayer}`;
+    const globalRetryAt = (this.lastInviteBySession.get(player.sessionID) || 0) + VOICE_INVITE_GLOBAL_COOLDOWN_MS;
+    const pairRetryAt = (this.lastInviteByPair.get(pairKey) || 0) + VOICE_INVITE_PAIR_COOLDOWN_MS;
+    const retryAt = Math.max(globalRetryAt, pairRetryAt);
+    if(now < retryAt)
+      return this.sendInviteStatus(player.name, targetPlayer, 'cooldown', { retryAt });
+
+    this.lastInviteBySession.set(player.sessionID, now);
+    this.lastInviteByPair.set(pairKey, now);
+
+    const inviteID = crypto.randomUUID();
+    const expiresAt = now + VOICE_INVITE_TTL_MS;
+    const invite = {
+      inviteID,
+      fromPlayer: player.name,
+      fromSessionID: player.sessionID,
+      targetPlayer,
+      expiresAt,
+      timer: null
+    };
+    invite.timer = setTimeout(()=>this.finishInvite(invite, 'expired'), VOICE_INVITE_TTL_MS);
+    this.pendingInvites.set(inviteID, invite);
+
+    for(const target of targets)
+      target.send('voiceInvite', { inviteID, fromPlayer: player.name, expiresAt });
+    this.sendInviteStatus(player.name, targetPlayer, 'sent', { inviteID, expiresAt });
+  }
+
+  respondToInvite(player, args) {
+    const inviteID = typeof args?.inviteID == 'string' ? args.inviteID : '';
+    const decision = args?.decision;
+    if(!inviteID || ![ 'accept', 'reject' ].includes(decision))
+      return;
+    const invite = this.pendingInvites.get(inviteID);
+    if(!invite || invite.targetPlayer !== player.name)
+      return;
+    if(invite.expiresAt <= Date.now())
+      return this.finishInvite(invite, 'expired');
+    this.finishInvite(invite, decision == 'accept' ? 'accepted' : 'rejected');
   }
 
   signal(player, args) {
@@ -255,9 +370,13 @@ class VoiceRoomManager {
   }
 
   handle(player, func, args) {
-    if(!this.enabled() && this.participants.size) {
-      this.participants.clear();
-      this.qualityFallback = false;
+    if(!this.enabled()) {
+      if(this.participants.size) {
+        this.participants.clear();
+        this.qualityFallback = false;
+      }
+      for(const invite of [ ...this.pendingInvites.values() ])
+        this.finishInvite(invite, 'cancelled');
     }
     if(func == 'voiceStateRequest')
       return this.sendState(player);
@@ -265,6 +384,10 @@ class VoiceRoomManager {
       return this.join(player);
     if(func == 'voiceLeave')
       return this.leave(player);
+    if(func == 'voiceInvite')
+      return this.invite(player, args);
+    if(func == 'voiceInviteResponse')
+      return this.respondToInvite(player, args);
     if(func == 'voiceSignal')
       return this.signal(player, args);
     if(func == 'voiceQuality')
@@ -276,6 +399,10 @@ class VoiceRoomManager {
   }
 
   disconnect(player) {
+    for(const invite of [ ...this.pendingInvites.values() ])
+      if(invite.fromSessionID === player.sessionID)
+        this.finishInvite(invite, 'cancelled');
+    this.lastInviteBySession.delete(player.sessionID);
     this.leave(player, true);
   }
 }

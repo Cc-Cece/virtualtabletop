@@ -75,6 +75,18 @@ The voice module is loaded separately from the main bundled client and adds a Vo
 
 Opening or failing voice does not affect cards, room state, or the main VTT WebSocket connection.
 
+## Voice invitations
+
+Voice invitations are a VTT room capability, not a game-package feature. A user who has already joined voice can invite another currently connected room player from the existing Players overlay. Players already in voice are shown with a microphone status instead of an invite action.
+
+Invitations are player-scoped rather than connection-scoped. If the target player has several browser/device sessions connected, the same invitation is delivered to all of them. The first accept or decline resolves the invitation everywhere. A target can have only one pending call-style invitation at a time, so several inviters cannot stack prompts on the same screen.
+
+The invited player receives a prominent call-style prompt with **Decline** and **Join voice** actions. Accepting the invitation does not itself mark that player as a voice participant; the client reuses the ordinary Join Voice action, including the normal browser microphone permission flow. The server only considers the player joined after the existing `voiceJoin` message succeeds.
+
+Invitations are transient server memory. They are not written into room state, save files, undo history, or game-package data. Pending invitations expire after 30 seconds. The server also enforces a short global invite interval and a 10-second inviter/target cooldown to reduce accidental repeat clicks and spam. Invitations cannot target the inviter, disconnected players, or players already in voice.
+
+The invitation transport uses the existing VTT WebSocket. LiveKit is not involved until a player actually joins voice, so no LiveKit, TURN, Caddy, or game-package changes are required for invitation support.
+
 ## Game-facing speaking activity
 
 Speaking is also exposed as a generic, client-only player activity so game packages can choose their own visual response without learning about WebRTC, LiveKit, or voice-panel DOM details.
