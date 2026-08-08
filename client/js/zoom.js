@@ -8,15 +8,103 @@ const CAMERA_REGION_CONTROL_ID = 'cameraRegionControl';
 const CAMERA_REGION_FOCUS_ID = 'cameraRegionFocusButton';
 const CAMERA_REGION_COLLAPSE_ID = 'cameraRegionCollapseButton';
 const CAMERA_REGION_COLLAPSED_KEY = 'cameraRegionControlsCollapsed';
+const HOVER_PREVIEW_MIN_PERCENT = 50;
+const HOVER_PREVIEW_MAX_PERCENT = 300;
+const HOVER_PREVIEW_DEFAULT_PERCENT = 100;
+const HOVER_PREVIEW_STORAGE_KEY = 'hoverPreviewScalePercent';
+const HOVER_PREVIEW_SLIDER_ID = 'hoverPreviewScaleSlider';
+const HOVER_PREVIEW_VALUE_ID = 'hoverPreviewScaleValue';
 
 let zoomScale = MIN_ZOOM;
 let zoomLocked = localStorage.getItem('zoomLocked') === 'true';
 let cameraRegionAutoFocusDone = false;
 let cameraRegionAutoFocusRegionID = null;
+let hoverPreviewPercent = clampHoverPreviewPercent(localStorage.getItem(HOVER_PREVIEW_STORAGE_KEY));
 
 export function clampZoomLevel(zoomLevel) {
   const rounded = Math.round(zoomLevel * ZOOM_PRECISION) / ZOOM_PRECISION;
   return Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, rounded));
+}
+
+function clampHoverPreviewPercent(value) {
+  if(value === null || value === '')
+    return HOVER_PREVIEW_DEFAULT_PERCENT;
+  const parsed = Number(value);
+  if(!Number.isFinite(parsed))
+    return HOVER_PREVIEW_DEFAULT_PERCENT;
+  return Math.max(HOVER_PREVIEW_MIN_PERCENT, Math.min(HOVER_PREVIEW_MAX_PERCENT, Math.round(parsed)));
+}
+
+function setHoverPreviewPercent(value, persist = true) {
+  hoverPreviewPercent = clampHoverPreviewPercent(value);
+  document.documentElement.style.setProperty('--hoverPreviewScale', hoverPreviewPercent / 100);
+
+  const slider = document.getElementById(HOVER_PREVIEW_SLIDER_ID);
+  if(slider)
+    slider.value = hoverPreviewPercent;
+
+  const output = document.getElementById(HOVER_PREVIEW_VALUE_ID);
+  if(output)
+    output.textContent = `${hoverPreviewPercent}%`;
+
+  if(persist)
+    localStorage.setItem(HOVER_PREVIEW_STORAGE_KEY, hoverPreviewPercent);
+}
+
+function installHoverPreviewScaling() {
+  if(Widget.prototype.showEnlarged.__hoverPreviewScaleWrapped)
+    return;
+
+  const originalShowEnlarged = Widget.prototype.showEnlarged;
+  const wrappedShowEnlarged = function(...args) {
+    const result = originalShowEnlarged.apply(this, args);
+    const enlarged = $('#enlarged');
+    if(enlarged && this.get('enlarge'))
+      enlarged.style.transform += ' scale(var(--hoverPreviewScale, 1))';
+    return result;
+  };
+  wrappedShowEnlarged.__hoverPreviewScaleWrapped = true;
+  Widget.prototype.showEnlarged = wrappedShowEnlarged;
+}
+
+function ensureHoverPreviewControl() {
+  const controls = $('#zoomControls');
+  if(!controls || document.getElementById(HOVER_PREVIEW_SLIDER_ID))
+    return;
+
+  const separator = document.createElement('span');
+  separator.setAttribute('aria-hidden', 'true');
+  separator.style.cssText = 'width:1px;align-self:stretch;margin:3px 4px;background:currentColor;opacity:.35;';
+
+  const label = document.createElement('label');
+  label.htmlFor = HOVER_PREVIEW_SLIDER_ID;
+  label.textContent = 'Preview';
+  label.title = 'Hover preview size (local to this browser)';
+  label.style.cssText = 'display:flex;align-items:center;padding-left:2px;font-size:12px;';
+
+  const slider = document.createElement('input');
+  slider.id = HOVER_PREVIEW_SLIDER_ID;
+  slider.type = 'range';
+  slider.min = HOVER_PREVIEW_MIN_PERCENT;
+  slider.max = HOVER_PREVIEW_MAX_PERCENT;
+  slider.step = 1;
+  slider.value = hoverPreviewPercent;
+  slider.setAttribute('aria-label', 'Hover preview size');
+  slider.title = 'Hover preview size: 50%–300%';
+  slider.style.width = '110px';
+
+  const output = document.createElement('output');
+  output.id = HOVER_PREVIEW_VALUE_ID;
+  output.setAttribute('for', HOVER_PREVIEW_SLIDER_ID);
+  output.textContent = `${hoverPreviewPercent}%`;
+  output.style.cssText = 'display:flex;align-items:center;justify-content:flex-end;min-width:38px;padding-right:4px;font-size:12px;font-variant-numeric:tabular-nums;';
+
+  slider.addEventListener('input', e => setHoverPreviewPercent(e.target.value));
+
+  controls.appendChild(separator);
+  controls.appendChild(label);
+  controls.appendChild(slider);
+  controls.appendChild(output);
 }
 
 function setZoomLevel(zoomLevel) {
@@ -243,6 +331,10 @@ onLoad(function() {
   let lastWheelZoomTime = 0;
   const minWheelZoomInterval = 40; // milliseconds between zoom events
   let zoomControlsHidden = true;
+
+  installHoverPreviewScaling();
+  ensureHoverPreviewControl();
+  setHoverPreviewPercent(hoverPreviewPercent, false);
 
   const zoomSlider = $('#zoomSlider');
   if(zoomSlider) {
