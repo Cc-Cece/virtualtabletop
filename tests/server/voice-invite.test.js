@@ -129,7 +129,7 @@ describe('voice invitations', () => {
     expect(messages(alice, 'voiceInviteStatus').at(-1)).toMatchObject({ targetPlayer: 'Bob', status: 'expired' });
   });
 
-  test('joining voice closes a pending invitation but does not let accepting impersonate a join', () => {
+  test('joining voice closes a pending invitation but accepting alone never impersonates a join', () => {
     jest.useFakeTimers();
     const alice = makePlayer('Alice', 1);
     const bob = makePlayer('Bob', 2);
@@ -144,6 +144,7 @@ describe('voice invitations', () => {
     expect(manager.participants.has(bob)).toBe(false);
     expect(messages(alice, 'voiceInviteStatus').at(-1)).toMatchObject({ targetPlayer: 'Bob', status: 'accepted' });
 
+    jest.advanceTimersByTime(10000);
     manager.handle(alice, 'voiceInvite', { targetPlayer: 'Bob' });
     const secondInvite = messages(bob, 'voiceInvite').at(-1);
     manager.handle(bob, 'voiceJoin', {});
