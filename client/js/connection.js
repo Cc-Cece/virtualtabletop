@@ -150,6 +150,7 @@ if(typeof window != 'undefined') {
 
   loadClientModule('clientActivityModule', 'js/clientActivity.js', 'client activity module');
   loadClientModule('voiceModule', 'js/voice.js', 'voice module');
+  loadClientModule('voiceInviteModule', 'js/voiceInvite.js', 'voice invitation module');
   loadClientModule('voiceSpeakingActivityModule', 'js/voiceSpeakingActivity.js', 'voice speaking activity adapter');
 }
 
