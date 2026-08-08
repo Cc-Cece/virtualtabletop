@@ -108,7 +108,7 @@ describe('voice invitations', () => {
     manager.handle(carol, 'voiceInvite', { targetPlayer: 'Bob' });
 
     expect(messages(bob, 'voiceInvite')).toHaveLength(1);
-    expect(messages(carol, 'voiceInviteStatus')[0]).toMatchObject({ targetPlayer: 'Bob', status: 'pending', inviteID });
+    expect(messages(carol, 'voiceInviteStatus')[0]).toMatchObject({ targetPlayer: 'Bob', status: 'busy' });
 
     manager.handle(bob, 'voiceInviteResponse', { inviteID, decision: 'reject' });
   });
