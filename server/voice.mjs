@@ -7,6 +7,7 @@ const VOICE_MODES = new Set([ 'auto', 'p2p', 'sfu' ]);
 const VOICE_INVITE_TTL_MS = 30000;
 const VOICE_INVITE_PAIR_COOLDOWN_MS = 10000;
 const VOICE_INVITE_GLOBAL_COOLDOWN_MS = 1000;
+const VOICE_RECONNECT_GRACE_MS = 8000;
 
 function base64url(value) {
   return Buffer.from(value).toString('base64').replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_');
@@ -92,6 +93,7 @@ class VoiceRoomManager {
   constructor(room) {
     this.room = room;
     this.participants = new Set();
+    this.disconnectedPresence = new Map();
     this.modeOverride = 'auto';
     this.qualityFallback = false;
     this.pendingInvites = new Map();
@@ -145,13 +147,20 @@ class VoiceRoomManager {
     return this.participants.size > this.p2pMaxParticipants() ? 'sfu' : 'p2p';
   }
 
+  visibleParticipants() {
+    return [
+      ...[ ...this.participants ].map(player=>({ sessionID: player.sessionID, player: player.name })),
+      ...[ ...this.disconnectedPresence.values() ].map(presence=>({ sessionID: presence.sessionID, player: presence.player }))
+    ];
+  }
+
   stateFor(player) {
     const lk = this.liveKit();
     return {
       enabled: this.enabled(),
       joined: this.participants.has(player),
       selfSessionID: player.sessionID,
-      participants: [ ...this.participants ].map(p=>({ sessionID: p.sessionID, player: p.name })),
+      participants: this.visibleParticipants(),
       modeOverride: this.modeOverride,
       effectiveMode: this.effectiveMode(),
       canControlMode: this.canControlMode(player),
@@ -177,7 +186,8 @@ class VoiceRoomManager {
   }
 
   playerNameInVoice(name) {
-    return [ ...this.participants ].some(player=>player.name === name);
+    return [ ...this.participants ].some(player=>player.name === name)
+      || [ ...this.disconnectedPresence.values() ].some(presence=>presence.player === name);
   }
 
   sendToPlayerName(name, func, args) {
@@ -213,11 +223,47 @@ class VoiceRoomManager {
         this.finishInvite(invite, status);
   }
 
+  clearReconnectGrace() {
+    for(const presence of this.disconnectedPresence.values())
+      clearTimeout(presence.timer);
+    this.disconnectedPresence.clear();
+  }
+
+  resumeDisconnectedPresence(player) {
+    for(const [ sessionID, presence ] of this.disconnectedPresence) {
+      if(presence.player !== player.name)
+        continue;
+      clearTimeout(presence.timer);
+      this.disconnectedPresence.delete(sessionID);
+      return true;
+    }
+    return false;
+  }
+
+  beginReconnectGrace(player) {
+    const sessionID = player.sessionID;
+    const presence = {
+      sessionID,
+      player: player.name,
+      timer: null
+    };
+    presence.timer = setTimeout(()=>{
+      if(this.disconnectedPresence.get(sessionID) !== presence)
+        return;
+      this.disconnectedPresence.delete(sessionID);
+      if(!this.participants.size)
+        this.qualityFallback = false;
+      this.broadcastState();
+    }, VOICE_RECONNECT_GRACE_MS);
+    this.disconnectedPresence.set(sessionID, presence);
+  }
+
   join(player) {
     if(!this.enabled()) {
       this.sendState(player);
       return;
     }
+    this.resumeDisconnectedPresence(player);
     this.resolveInvitesForTarget(player.name, 'joined');
     this.participants.add(player);
     this.broadcastState();
@@ -225,7 +271,7 @@ class VoiceRoomManager {
 
   leave(player, disconnecting = false) {
     const removed = this.participants.delete(player);
-    if(!this.participants.size)
+    if(!this.participants.size && !this.disconnectedPresence.size)
       this.qualityFallback = false;
     if(removed)
       this.broadcastState(disconnecting ? player : null);
@@ -375,6 +421,7 @@ class VoiceRoomManager {
         this.participants.clear();
         this.qualityFallback = false;
       }
+      this.clearReconnectGrace();
       for(const invite of [ ...this.pendingInvites.values() ])
         this.finishInvite(invite, 'cancelled');
     }
@@ -403,7 +450,14 @@ class VoiceRoomManager {
       if(invite.fromSessionID === player.sessionID)
         this.finishInvite(invite, 'cancelled');
     this.lastInviteBySession.delete(player.sessionID);
-    this.leave(player, true);
+
+    const removed = this.participants.delete(player);
+    if(removed && this.enabled()) {
+      this.beginReconnectGrace(player);
+      return;
+    }
+    if(removed)
+      this.broadcastState(player);
   }
 }
 
