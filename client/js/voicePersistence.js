@@ -5,6 +5,7 @@ if(!transport) {
 } else {
   const STORAGE_PREFIX = 'vtt.voice.preferences:';
   const RESTORE_TIMEOUT_MS = 12000;
+  const DEVICE_WAIT_MS = 1500;
   const state = {
     server: null,
     prefs: loadPreferences(),
@@ -13,7 +14,8 @@ if(!transport) {
     restoreAttemptedForSession: null,
     restoreTimer: null,
     autoRestored: false,
-    explicitLeave: false
+    explicitLeave: false,
+    syncingControls: false
   };
 
   installStyles();
@@ -23,12 +25,15 @@ if(!transport) {
     if(numeric !== state.restoreAttemptedForSession) {
       state.restoreAttemptedForSession = null;
       state.restoreInFlight = false;
-      clearTimeout(state.restoreTimer);
-      state.restoreTimer = null;
+      clearRestoreTimer();
     }
   });
   transport.onMessage('voiceState', onVoiceState);
   transport.onMessage('voiceError', onVoiceError);
+
+  const cachedVoiceState = transport.lastMessage && transport.lastMessage('voiceState');
+  if(cachedVoiceState)
+    onVoiceState(cachedVoiceState);
 
   function roomStorageKey() {
     const roomPath = location.pathname.replace(/\/+$/, '') || '/';
@@ -106,6 +111,8 @@ if(!transport) {
     state.uiReady = true;
 
     ui.join.addEventListener('click', event=>{
+      if(state.syncingControls)
+        return;
       const currentlyJoined = !!state.server?.joined || /leave voice/i.test(ui.join.textContent || '');
       if(currentlyJoined) {
         state.explicitLeave = true;
@@ -122,16 +129,22 @@ if(!transport) {
     }, true);
 
     ui.mic.addEventListener('click', ()=>{
+      if(state.syncingControls)
+        return;
       state.prefs.selfMuted = !state.prefs.selfMuted;
       savePreferences();
     }, true);
 
     ui.input.addEventListener('change', ()=>{
+      if(state.syncingControls)
+        return;
       state.prefs.microphoneDeviceId = ui.input.value || '';
       savePreferences();
     });
 
     ui.participants.addEventListener('click', event=>{
+      if(state.syncingControls)
+        return;
       const button = event.target.closest?.('.voicePeerMute');
       if(!button)
         return;
@@ -147,6 +160,8 @@ if(!transport) {
     }, true);
 
     ui.participants.addEventListener('input', event=>{
+      if(state.syncingControls)
+        return;
       const volume = event.target.closest?.('.voicePeerVolume');
       if(!volume || Number(volume.value) <= 0)
         return;
@@ -208,23 +223,51 @@ if(!transport) {
     state.restoreAttemptedForSession = sessionID;
     state.restoreInFlight = true;
     state.explicitLeave = false;
-    restoreDeviceSelection();
 
-    const join = ()=>{
-      if(!state.ui?.join || state.ui.join.disabled) {
-        setTimeout(join, 100);
-        return;
-      }
-      state.ui.join.click();
-      clearRestoreTimer();
-      state.restoreTimer = setTimeout(()=>{
-        if(state.restoreInFlight && !state.server?.joined) {
-          state.restoreInFlight = false;
-          showRestoreFailure();
+    waitForPreferredDevice().finally(()=>{
+      const join = ()=>{
+        if(!state.restoreInFlight)
+          return;
+        if(!state.ui?.join || state.ui.join.disabled) {
+          setTimeout(join, 100);
+          return;
         }
-      }, RESTORE_TIMEOUT_MS);
-    };
-    setTimeout(join, 0);
+        state.syncingControls = true;
+        try {
+          state.ui.join.click();
+        } finally {
+          state.syncingControls = false;
+        }
+        clearRestoreTimer();
+        state.restoreTimer = setTimeout(()=>{
+          if(state.restoreInFlight && !state.server?.joined) {
+            state.restoreInFlight = false;
+            showRestoreFailure();
+          }
+        }, RESTORE_TIMEOUT_MS);
+      };
+      join();
+    });
+  }
+
+  function waitForPreferredDevice() {
+    const saved = state.prefs.microphoneDeviceId;
+    if(!saved || !state.ui?.input)
+      return Promise.resolve();
+    const started = Date.now();
+    return new Promise(resolve=>{
+      const check = ()=>{
+        if([ ...state.ui.input.options ].some(option=>option.value === saved)) {
+          state.syncingControls = true;
+          try { state.ui.input.value = saved; } finally { state.syncingControls = false; }
+          return resolve();
+        }
+        if(Date.now() - started >= DEVICE_WAIT_MS)
+          return resolve();
+        setTimeout(check, 75);
+      };
+      check();
+    });
   }
 
   function clearRestoreTimer() {
@@ -246,33 +289,40 @@ if(!transport) {
     const saved = state.prefs.microphoneDeviceId;
     if(!input || !saved)
       return;
-    if([ ...input.options ].some(option=>option.value === saved))
-      input.value = saved;
+    if([ ...input.options ].some(option=>option.value === saved)) {
+      state.syncingControls = true;
+      try { input.value = saved; } finally { state.syncingControls = false; }
+    }
   }
 
   function syncSavedControls() {
     if(!state.uiReady || !state.server?.joined)
       return;
 
-    // Preserve the user's own mute preference. The existing voice module owns the media track;
-    // this module drives its existing mute control after reconnection rather than revoking browser
-    // microphone permission or creating a parallel audio state.
-    const micShowsMuted = /unmute mic/i.test(state.ui.mic.textContent || '');
-    if(state.prefs.selfMuted !== micShowsMuted && !state.ui.mic.disabled)
-      state.ui.mic.click();
+    state.syncingControls = true;
+    try {
+      // Preserve the user's own mute preference. The existing voice module owns the media track;
+      // this module drives its normal mute control rather than revoking browser microphone permission
+      // or creating a parallel audio path.
+      const micShowsMuted = /unmute mic/i.test(state.ui.mic.textContent || '');
+      if(state.prefs.selfMuted !== micShowsMuted && !state.ui.mic.disabled)
+        state.ui.mic.click();
 
-    for(const row of state.ui.participants.querySelectorAll('.voiceParticipant')) {
-      const sessionID = Number(row.dataset.sessionId);
-      if(!sessionID || sessionID === Number(state.server.selfSessionID))
-        continue;
-      const participant = (state.server.participants || []).find(p=>Number(p.sessionID) === sessionID);
-      const mute = row.querySelector('.voicePeerMute');
-      if(!participant?.player || !mute)
-        continue;
-      const wantsMuted = state.prefs.remoteMutedPlayers[participant.player] === true;
-      const currentlyMuted = mute.textContent?.includes('🔇') || /^unmute /i.test(mute.title || '');
-      if(wantsMuted !== currentlyMuted)
-        mute.click();
+      for(const row of state.ui.participants.querySelectorAll('.voiceParticipant')) {
+        const sessionID = Number(row.dataset.sessionId);
+        if(!sessionID || sessionID === Number(state.server.selfSessionID))
+          continue;
+        const participant = (state.server.participants || []).find(p=>Number(p.sessionID) === sessionID);
+        const mute = row.querySelector('.voicePeerMute');
+        if(!participant?.player || !mute)
+          continue;
+        const wantsMuted = state.prefs.remoteMutedPlayers[participant.player] === true;
+        const currentlyMuted = mute.textContent?.includes('🔇') || /^unmute /i.test(mute.title || '');
+        if(wantsMuted !== currentlyMuted)
+          mute.click();
+      }
+    } finally {
+      state.syncingControls = false;
     }
   }
 
