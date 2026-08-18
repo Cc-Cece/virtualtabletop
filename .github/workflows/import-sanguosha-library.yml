@@ -1,0 +1,48 @@
+name: Import Sanguosha library
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: sanguosha-manual-vtt release tag (v*)
+        required: true
+        type: string
+  repository_dispatch:
+    types: [sanguosha-library-update]
+
+permissions:
+  contents: write
+
+jobs:
+  import:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out VTT
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Import release into library
+        env:
+          SANGUOSHA_REPO: Cc-Cece/sanguosha-manual-vtt
+        run: |
+          TAG="${{ github.event.inputs.tag || github.event.client_payload.tag }}"
+          test -n "$TAG"
+          node scripts/import-sanguosha-library.mjs "$TAG"
+
+      - name: Commit and push shelf
+        run: |
+          TAG="${{ github.event.inputs.tag || github.event.client_payload.tag }}"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add library/games/Sanguosha-Manual
+          if git diff --cached --quiet; then
+            echo "Shelf already matches $TAG"
+            exit 0
+          fi
+          git commit -m "chore(library): Sanguosha-Manual ${TAG}"
+          git push
