@@ -85,17 +85,17 @@ function getValidDropTargets(widget, dragged = widget) {
   return targets;
 }
 
-function getMaxZ(layer) {
+export function getMaxZ(layer) {
   return maxZ[layer] || 0;
 }
 
-async function resetMaxZ(layer) {
+export async function resetMaxZ(layer) {
   maxZ[layer] = 0;
   for(const w of widgetFilter(w=>w.get('layer')==layer&&w.state.z).sort((a,b)=>a.get('z')-b.get('z')))
     await w.set('z', ++maxZ[layer]);
 }
 
-function updateMaxZ(layer, z) {
+export function updateMaxZ(layer, z) {
   maxZ[layer] = Math.max(maxZ[layer] || 0, z);
 }
 
@@ -718,17 +718,17 @@ async function loadEditMode() {
       setJEenabled, setJEroutineLogging, setZoomAndOffset, resetZoomAndPan, toggleEditMode, getEdit,
       toServer, batchStart, batchEnd, setDeltaCause, sendPropertyUpdate, getUndoProtocol, setUndoProtocol, sendRawDelta, getDelta,
       addWidgetLocal, updateWidgetId, removeWidgetLocal,
-      loadJSZip, waitForJSZip,
+      loadZipLibrary, waitForZipLibrary, zipBlob,
       generateUniqueWidgetID, unescapeID, regexEscape, setScale, getScale, getRoomRectangle, getMaxZ, getZoomLevel,
       uploadAsset, _uploadAsset, mapAssetURLs, pickSymbol, pickAudio, cancelAudioPicker, toNotoMonochrome, skipForNotoMonochrome, selectFile, triggerDownload,
       config, getPlayerDetails, roomID, getDeltaID, widgets, widgetFilter, isOverlayActive,
-      viewportConfig, DEFAULT_VIEWPORT, MIN_BOARD_SIZE, MAX_BOARD_SIZE,
+      viewportConfig, DEFAULT_VIEWPORT, MIN_BOARD_SIZE, MAX_BOARD_SIZE, calculateEditModuleClasses, isOrientationMismatch,
       html, formField,
       Widget, BasicWidget, Button, Canvas, Card, Deck, Dice, Holder, Label, Line, Pile, Scoreboard, Seat, Spinner, Timer,
       toHex, contrastAnyColor,
-      asArray, compute_ops,
+      asArray, compute_ops, positionNames, expressionError, expressionNames,
       eventCoords,
-      getCurrentGameSettings, legacyMode, getEnabledLegacyModes
+      getCurrentGameSettings, legacyMode, getEnabledLegacyModes, LEGACY_MODES
     });
     $('body').classList.add('loadingEditMode');
     const editmode = await import('./edit.js');

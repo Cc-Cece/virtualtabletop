@@ -499,10 +499,13 @@ class DeckEditor {
     }, { passive: false });
     $('#deckEditorMain').addEventListener('touchend', e=>{ if(e.touches.length < 2) pinchStartDist = 0; if(!e.touches.length) touchPanning = false; });
 
+    $('#deckEditorStrip').addEventListener('scroll', _=>this.updateStripOverflow());
+
     window.addEventListener('resize', _=>{
       if(this.isOpen()) {
         this.renderMain();
         this.updateDragToolbar();
+        this.updateStripOverflow();
       }
     });
     window.addEventListener('keydown', e=>this.onKeyDown(e));
@@ -1428,7 +1431,7 @@ class DeckEditor {
     if(!this.deck())
       return;
     if(this.deckSymbolSelected)
-      return div(container, 'deckEditorEmpty', '<p>Edit the default properties of every card in this deck to the right, or select a card type below to edit that card.</p>');
+      return div(container, 'deckEditorEmpty', '<p>Edit the default properties of every card in this deck in the properties panel, or select a card type in the "Card types" strip to edit that card.</p>');
     if(this.cardType === null)
       return div(container, 'deckEditorEmpty', '<p>This deck does not have any card types yet. Add one using the button in the bottom strip.</p>');
     if(!this.faceTemplates.length)
@@ -1904,7 +1907,7 @@ class DeckEditor {
     const prevScroll = strip.scrollLeft; // rebuilding the tiles must not snap the strip back to the start
     strip.innerHTML = '';
     if(!this.deck())
-      return;
+      return this.updateStripOverflow(); // an empty strip hides nothing behind either edge
 
     // The card-type toolbar's copy/delete need a selected card type; "± All" needs at least one card type.
     $('#deckEditorStripCopy').disabled = this.cardType === null;
@@ -1963,7 +1966,7 @@ class DeckEditor {
       };
       // Per-card-type "cards in game" count with +/- right under the tile.
       const count = widgetFilter(w=>w.get('deck') == this.deckID && w.get('type') == 'card' && w.get('cardType') == cardType).length;
-      const countRow = div(button, 'deckEditorStripCount', `<button icon=remove title="One fewer card of this type"></button><span class=deckEditorStripCountVal>${count}</span><button icon=add title="One more card of this type"></button>`);
+      const countRow = div(button, 'deckEditorStripCount', `<button icon=remove title="One fewer card of this type"></button><span class=deckEditorStripCountVal title="Cards of this type in the game">${count}</span><button icon=add title="One more card of this type"></button>`);
       countRow.draggable = false;
       countRow.onmousedown = e=>e.stopPropagation();
       countRow.ondragstart = e=>{ e.preventDefault(); e.stopPropagation(); };
@@ -1979,6 +1982,15 @@ class DeckEditor {
     if(selectedTile && selectedTile.scrollIntoView && this.stripScrolledTo !== selectionKey)
       selectedTile.scrollIntoView({ block: 'nearest', inline: 'nearest' });
     this.stripScrolledTo = selectionKey;
+    this.updateStripOverflow();
+  }
+
+  // Which side of the strip still has card types hidden behind its edge, for the fades in deckeditor.css.
+  updateStripOverflow() {
+    const strip = $('#deckEditorStrip');
+    const hidden = strip.scrollWidth - strip.clientWidth;
+    strip.classList.toggle('deckEditorStripMoreLeft',  hidden > 1 && strip.scrollLeft > 1);
+    strip.classList.toggle('deckEditorStripMoreRight', hidden > 1 && strip.scrollLeft < hidden - 1);
   }
 
   renderSidebar() {
@@ -2377,6 +2389,15 @@ class DeckEditor {
         return;
       }
       const row = this.addTypedInput(property, typeProperties[property], onValueChanged, typeProps);
+      // The sorting properties of the standard decks say on hover what they are for - on the label too, which
+      // carries a tooltip of its own (the property name, for names the label column cuts off).
+      const hint = this.cardTypePropertyHint(property, typeProperties);
+      if(hint) {
+        row.dom.title = `${property} — ${hint}`;
+        const label = $('.deckEditorPropertyLabel', row.dom);
+        if(label)
+          label.title = row.dom.title;
+      }
       // A custom asset value, or a property bound to an image/icon face object's "value", gets a picker too.
       const boundKind = this.assetPickerKindForCardTypeProperty(property);
       if(boundKind || this.isAssetValue(typeProperties[property]))
@@ -3206,10 +3227,56 @@ class DeckEditor {
     return /^\s*[a-zA-Z]+\s*$/.test(value) && this.parseColor(value) !== null;
   }
 
-  // Whether a property row should get the little color swatch + color picker: a color-named property
-  // (color, strokeColor, textColor, …) or one whose current value already looks like a color.
+  // A value that can only be on its way to becoming a color while it is being typed: a half-typed hex ("#1a")
+  // or the start of an rgb()/hsl() notation. Without this the picker button of a color-named property would
+  // vanish and reappear under the cursor between two keystrokes of a hex value. Half-typed keywords are
+  // deliberately not accepted: "Spades" is indistinguishable from "blu" halfway through, so letters would
+  // leave the picker armed on a value that is no color and never becomes one.
+  isPartialColorValue(value) {
+    const text = String(value === undefined || value === null ? '' : value).trim();
+    return /^#[0-9a-fA-F]{0,8}$/.test(text) || /^(rgba?|hsla?)\(/.test(text);
+  }
+
+  // Whether a property row should get the little color swatch + color picker. A value that is a color always
+  // gets one, and an empty color-named property (color, strokeColor, textColor, …) does too - the picker is
+  // how a color is put there. The name alone is not enough: a card type property named after a color can hold
+  // something that is no color at all - the standard deck sorts by suitColor: "♠" - and picking a color there
+  // would silently overwrite that value with a hex code.
+  // The answer depends on the current value alone, never on whether a picker was showing a keystroke ago: a
+  // rule that fed its own result back in would keep the picker armed on whatever is typed over a color next
+  // ("red" -> "S" -> "Spades"), which is the trap this is here to close. A half-typed hex or rgb() keeps its
+  // button between keystrokes because those shapes can't be anything but a color on its way in.
   shouldOfferColorPicker(property, value) {
-    return /color/i.test(String(property)) || this.isColorValue(value);
+    if(this.isColorValue(value))
+      return true;
+    if(!/color/i.test(String(property)))
+      return false;
+    const text = String(value === undefined || value === null ? '' : value).trim();
+    return text == '' || this.isPartialColorValue(text);
+  }
+
+  // What a card type property is there for, as a row tooltip. The standard decks give their cards a set of
+  // properties that exist purely so a routine can SORT by them (see generateCardDeckWidgets in editmode.js and
+  // assets/decks/standard.json), and their values are shaped for that order rather than for reading - without
+  // a word of explanation the panel just shows "suitAlt: 3♠" and "rankFixed: 02 S". Only a card type carrying
+  // the complete set is described this way: card type properties are author-defined, so a deck that happens to
+  // use one or two of these names for its own values (the German and Spanish decks use "rank"/"suit" for their
+  // readable ones, a hand-built deck may sort by a "rank" of its own) isn't told what its properties mean.
+  cardTypePropertyHint(property, typeProperties) {
+    const hints = {
+      suit: 'Sorting property: groups the cards of one suit together.',
+      suitColor: 'Sorting property: keeps the suits of the same color together. Despite its name it holds no CSS color here.',
+      suitAlt: 'Sorting property: a second suit order - the standard deck alternates black and red suits with it.',
+      rank: 'Sorting property: orders the cards by rank, ace low. Shaped so that sorting gets it right, not for printing on a card.',
+      rankA: 'Sorting property: like rank, but with the ace high.',
+      rankFixed: 'Sorting property: one fixed order for the whole deck - by rank, then by suit.'
+    };
+    const isSortingDeck = Object.keys(hints).every(key=>typeProperties[key] !== undefined);
+    if(!isSortingDeck || !hints[property])
+      return null;
+    if(property == 'suitColor' && this.isColorValue(typeProperties[property]))
+      return 'The color of this card\'s suit. Sorting by it keeps the suits of the same color together.';
+    return hints[property];
   }
 
   // Whether a card type property is used as the "value" of an image/icon face object bound to it — such a
@@ -3288,10 +3355,14 @@ class DeckEditor {
     // The picker reads the field instead of the model so it opens on what is currently typed, even while the
     // edit that writes it through is still queued.
     const picker = new ColorInput({}, {}, null, { getValue: _=>field.value, listenTo: [] });
+    let offer = this.shouldOfferColorPicker(property, field.value);
+    // A color-named row keeps the space for the button reserved even while it isn't showing one, so the field
+    // doesn't change width under the cursor when the value stops (or starts) looking like a color mid-edit.
+    const keepsRoom = /color/i.test(String(property));
     const updateSwatch = _=>{
-      const offer = this.shouldOfferColorPicker(property, field.value);
+      offer = this.shouldOfferColorPicker(property, field.value);
       button.style.display = offer ? '' : 'none';
-      row.dom.classList.toggle('hasColorPicker', offer);
+      row.dom.classList.toggle('hasColorPicker', offer || keepsRoom);
       if(offer) {
         const color = this.parseColor(field.value);
         if(color)
@@ -3368,7 +3439,7 @@ class DeckEditor {
     if(!hint)
       return;
     const show = this.deck() && !this.deckSymbolSelected && this.selectedObject === null && this.faceTemplates.length;
-    hint.textContent = show ? 'Click a face object above or on the list to the left to select, edit, or drag it around.' : '';
+    hint.textContent = show ? 'Click a face object on the card, or in the "Face objects" list, to select, edit, or drag it around.' : '';
     hint.classList.toggle('active', !!show);
   }
 
